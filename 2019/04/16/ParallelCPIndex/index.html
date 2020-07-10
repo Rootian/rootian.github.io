@@ -6,17 +6,22 @@
   <meta name="renderer" content="webkit">
   <meta http-equiv="X-UA-Compatible" content="IE=edge" >
   <link rel="dns-prefetch" href="http://rootianBlog.com">
-  <title>Archives: 2020/7 | Rootian&#39;Blog</title>
+  <title>基于Spark并行加速的CP index聚类评价算法 | Rootian&#39;Blog</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-  <meta name="description" content="武汉大学 GIS">
-<meta property="og:type" content="website">
-<meta property="og:title" content="Rootian&#39;Blog">
-<meta property="og:url" content="http://rootianblog.com/archives/2020/07/index.html">
+  <meta name="description" content="CP Index算法简介CP(compactness)是用以评价聚类算法聚类效果的一种评价指标，算法主要包括三个步骤：  计算各个聚类的聚类中心  $$w_i &#x3D; \frac{1}{|\Omega_i|}\sum_{x_i\in\Omega_i}x_i$$ 计算各个聚类各点到聚类中心的平均距离  $$\overline{CP_i}&#x3D;\frac{1}{|\Omega_i|}\sum_{x_i\in">
+<meta property="og:type" content="article">
+<meta property="og:title" content="基于Spark并行加速的CP index聚类评价算法">
+<meta property="og:url" content="http://rootianblog.com/2019/04/16/ParallelCPIndex/index.html">
 <meta property="og:site_name" content="Rootian&#39;Blog">
-<meta property="og:description" content="武汉大学 GIS">
+<meta property="og:description" content="CP Index算法简介CP(compactness)是用以评价聚类算法聚类效果的一种评价指标，算法主要包括三个步骤：  计算各个聚类的聚类中心  $$w_i &#x3D; \frac{1}{|\Omega_i|}\sum_{x_i\in\Omega_i}x_i$$ 计算各个聚类各点到聚类中心的平均距离  $$\overline{CP_i}&#x3D;\frac{1}{|\Omega_i|}\sum_{x_i\in">
 <meta property="og:locale" content="en_US">
+<meta property="og:image" content="http://rootianblog.com/2019/04/16/ParallelCPIndex/Device.jpg">
+<meta property="article:published_time" content="2019-04-16T03:27:44.000Z">
+<meta property="article:modified_time" content="2019-04-16T15:09:42.460Z">
 <meta property="article:author" content="Rootian">
+<meta property="article:tag" content="spark">
 <meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://rootianblog.com/2019/04/16/ParallelCPIndex/Device.jpg">
   
     <link rel="alternative" href="/atom.xml" title="Rootian&#39;Blog" type="application/atom+xml">
   
@@ -138,49 +143,217 @@
             <canvas data-colors="#eaeaea" data-sectionHeight="100" data-contentId="js-content" id="myCanvas1" class="anm-canvas"></canvas>
           </div>
           <div id="js-content" class="content-ll">
-            
-  
-  
+            <article id="post-ParallelCPIndex" class="article article-type-post " itemscope itemprop="blogPost">
+  <div class="article-inner">
     
-    
-      
-      
-      <section class="archives-wrap">
-        <div class="archive-year-wrap">
-          <a href="/archives/2020" class="archive-year">2020</a>
-        </div>
-        <div class="archives">
-    
-    <article class="archive-article archive-type-post">
-  <div class="archive-article-inner">
-    <header class="archive-article-header">
-      	<div class="article-meta">
-	      	<a href="/2020/07/10/hello-world/" class="archive-article-date">
-  	<time datetime="2020-07-10T05:55:05.649Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2020-07-10</time>
-</a>
-        </div>
-    	 
+      <header class="article-header">
+        
   
-    <h1 itemprop="name">
-      <a class="archive-article-title" href="/2020/07/10/hello-world/">Hello World</a>
+    <h1 class="article-title" itemprop="name">
+      基于Spark并行加速的CP index聚类评价算法
     </h1>
   
 
-        <div class="article-info info-on-right">
-          
-          
+        
+        <a href="/2019/04/16/ParallelCPIndex/" class="archive-article-date">
+  	<time datetime="2019-04-16T03:27:44.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2019-04-16</time>
+</a>
+        
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <a id="more"></a>
+<h2 id="CP-Index"><a href="#CP-Index" class="headerlink" title="CP Index"></a>CP Index</h2><h3 id="算法简介"><a href="#算法简介" class="headerlink" title="算法简介"></a>算法简介</h3><p><strong>CP(compactness)</strong>是用以评价聚类算法聚类效果的一种评价指标，算法主要包括三个步骤：</p>
+<ul>
+<li>计算各个聚类的<strong>聚类中心</strong><br>  $$w_i = \frac{1}{|\Omega_i|}\sum_{x_i\in\Omega_i}x_i$$</li>
+<li>计算各个聚类各点到聚类中心的<strong>平均距离</strong><br>  $$\overline{CP_i}=\frac{1}{|\Omega_i|}\sum_{x_i\in\Omega_i}||x_i-w_i||$$</li>
+<li>计算所有聚类的<strong>类内平均距离(CP指数)</strong><br>  $$\overline{CP}=\frac{1}{K}\sum_{k=1}^K\overline{CP_k}$$<br>  其中，$x_i$表示第i类的聚类数据点，$\Omega_i$表示第i类聚类的聚类点个数，K表示聚类的个数。</li>
+</ul>
+<h3 id="算法评价"><a href="#算法评价" class="headerlink" title="算法评价"></a>算法评价</h3><p>CP Index 算法计算的是聚类的<strong>类内平均距离</strong>，即考虑聚类的<strong>紧致性(compactness)</strong>。CP越低意味着聚类类内距离越近，从而聚类效果越好。但其缺点在于没有考虑<strong>类间关系</strong>，只考虑了<strong>类内关系</strong>。</p>
+<h2 id="Spark"><a href="#Spark" class="headerlink" title="Spark"></a>Spark</h2><h3 id="Spark简介"><a href="#Spark简介" class="headerlink" title="Spark简介"></a>Spark简介</h3><p>官网地址：<a href="http://spark.apache.org/" target="_blank" rel="noopener">http://spark.apache.org/</a><br>教程地址：<a href="https://www.cnblogs.com/qingyunzong/p/8886338.html" target="_blank" rel="noopener">Spark学习之路</a></p>
+<p>Apache Spark 是专为大规模数据处理而设计的快速通用的计算引擎。Spark是UC Berkeley AMP lab (加州大学伯克利分校的AMP实验室)所开源的类Hadoop MapReduce的通用并行框架。<br>关于Spark的基础知识就不过多赘述，下面仅介绍与本算法相关的内容</p>
+<h3 id="RDD概念"><a href="#RDD概念" class="headerlink" title="RDD概念"></a>RDD概念</h3><p>RDD(Resilient Distributed Dataset)，即弹性分布式数据集，是spark中最基本的<strong>数据抽象</strong>。被定义为<strong>只读</strong>、<strong>分区化</strong>的记录集合，是对原始数据的进一步封装。换句话说，就是spark里用来存储数据的特有变量。RDD具有数据流模型的特点：<strong>自动容错、位置感知性调度和可伸缩性</strong>。</p>
+<h3 id="RDD操作"><a href="#RDD操作" class="headerlink" title="RDD操作"></a>RDD操作</h3><p>Spark RDD提供了两大类操作api：<strong>转换(Transformation)操作</strong>与<strong>动作(Action)操作</strong>。<br>其中，转换操作是由一个RDD转换到一个新的RDD，如map、reduceByKey、filter等，通常用于实行主要的数据运算、处理操作，同时，RDD转换操作具有<strong>惰性</strong>，这意味着一个RDD执行转换操作后，数据的计算是延迟的，新生成的RDD只会<strong>记录转换的相关信息</strong>而不会进行实质性的转换，直到遇到了action算子才会计算。这一点是新手在Debug时容易遇到的问题，在编写了转换操作后必须要跟有action操作才能在Debug时看到转换算子计算的结果。<br>动作算子用于<strong>驱动程序返回值或者将值写入到文件中</strong>。如reduce、collect、take等。换句话说，action算子一般不用于计算，而主要用于输出数据。</p>
+<h3 id="shuffle依赖与窄依赖"><a href="#shuffle依赖与窄依赖" class="headerlink" title="shuffle依赖与窄依赖"></a>shuffle依赖与窄依赖</h3><p>谈到RDD就一定要谈一谈它的依赖关系，因为这是RDD内部划分stage的核心依据之一。</p>
+<div align="center">![narrow Dependency](narrowDependency.png)</div>
 
+<ul>
+<li>窄依赖是指每个父RDD的一个Partition<strong>最多被子RDD的一个Partition所使用</strong>，例如map、filter、union等操作都会产生窄依赖；</li>
+<li>shuffle依赖是指一个父RDD的Partition会被<strong>多个子RDD的Partition所使用</strong>，例如groupByKey、reduceByKey、sortByKey等操作都会产生宽依赖</li>
+</ul>
+<p>这样一来，对于父RDD的一个partition被一个子RDD的partition使用的窄依赖，Spark可以在RDD的转换计算中在多个partition间进行<strong>并行处理</strong>，提高运算性能，而对于同一个父RDD被多个子RDD的partition所使用的shuffle依赖，由于在计算子RDD前必须知道前一个RDD的所有数据，因此在这里就<strong>不可以在一个RDD内进行并行处理</strong>。因此，Spark会在shuffle依赖处划分一个边界，开始下一个阶段。换言之，Spark在构建DAG图时，会从前之后一次遍历RDD，遇到窄依赖则继续，遇到shuffle依赖则设置为该阶段的结束点。这便是Spark构建DAG的核心过程。</p>
+<h2 id="基于Spark的CP-Index-算法"><a href="#基于Spark的CP-Index-算法" class="headerlink" title="基于Spark的CP Index 算法"></a>基于Spark的CP Index 算法</h2><h3 id="核心思想"><a href="#核心思想" class="headerlink" title="核心思想"></a>核心思想</h3><p>设计Spark算法的核心在于<strong>划分阶段</strong>，<strong>区分可并行处理的部分</strong>及其界限。<br>在CP Index算法中，我将算法划分为三大阶段：</p>
+<ul>
+<li>计算各个聚类的<strong>聚类中心</strong>。因为下一阶段的计算需要使用到聚类中心点数据，因此，计算聚类中心必须作为前一阶段，全部计算完毕后方可开始下一阶段。这一阶段使用了一次Mappartitions、MaptoPair、ReduceByKey的组合，由于聚类数据是分散于各个计算节点的RDD中，先使用Mappartitions计算各个计算节点的聚类中心，然后使用MaptoPair组成key-value对，将聚类编号设置为key。然后使用ReduceByKey基于Key对各节点计算的聚类中心进行reduce，得到最后的聚类中心。</li>
+<li>计算<strong>各个聚类内的点到各聚类聚类中心的距离</strong>。该阶段大致流程同上一阶段，也是先在各个计算节点计算类内距离，然后组成键值对，最后reduce。</li>
+<li>计算<strong>所有聚类的类内平均距离</strong>。该步骤较为简单，对上一步得到的各个类的平均距离求平均即可，因为计算量较小，因此没有采用Spark处理，以节省通信开销。</li>
+</ul>
+<h3 id="源码"><a href="#源码" class="headerlink" title="源码"></a>源码</h3><p>源码请上</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//initialize RDD</span></span><br><span class="line">	SparkConf conf = <span class="keyword">new</span> SparkConf();</span><br><span class="line">       conf.setAppName(<span class="string">"CPI_index"</span>);</span><br><span class="line">       conf.setMaster(<span class="string">"local[*]"</span>);</span><br><span class="line">       JavaSparkContext sc = <span class="keyword">new</span> JavaSparkContext(conf);</span><br><span class="line">       JavaRDD&lt;clustered_point&gt; dataRdd = sc.parallelize(points,<span class="number">4</span>);</span><br><span class="line">       Broadcast&lt;Integer&gt; bc_n_cluster = sc.broadcast(num_cluster);</span><br><span class="line">       Broadcast&lt;<span class="keyword">int</span>[]&gt; bc_PointNumOfEachCluster = sc.broadcast(PointNumOfEachCluster);</span><br><span class="line">       </span><br><span class="line">       <span class="comment">//parallelize computation</span></span><br><span class="line">       JavaRDD&lt;Tuple2&lt;clustered_point, Integer&gt;&gt; centerRdd = dataRdd.mapPartitions(p -&gt; &#123;</span><br><span class="line">   	   <span class="keyword">int</span> n_clusters = bc_n_cluster.value();</span><br><span class="line">   	   clustered_point[] centers = <span class="keyword">new</span> clustered_point[n_clusters];</span><br><span class="line">   	   <span class="comment">//compute centers inside every partition</span></span><br><span class="line">   	   Integer[] count = <span class="keyword">new</span> Integer[n_clusters];</span><br><span class="line">   	   Arrays.fill(count, <span class="number">0</span>);</span><br><span class="line">   	   <span class="keyword">double</span>[] X = <span class="keyword">new</span> <span class="keyword">double</span>[n_clusters];</span><br><span class="line">   	   Arrays.fill(X, <span class="number">0</span>);</span><br><span class="line">   	   <span class="keyword">double</span>[] Y = <span class="keyword">new</span> <span class="keyword">double</span>[n_clusters];</span><br><span class="line">   	   Arrays.fill(Y, <span class="number">0</span>);</span><br><span class="line">   	   <span class="keyword">double</span>[] Z = <span class="keyword">new</span> <span class="keyword">double</span>[n_clusters];   </span><br><span class="line">   	   Arrays.fill(Z, <span class="number">0</span>);</span><br><span class="line">   	   <span class="keyword">while</span>(p.hasNext()) &#123;</span><br><span class="line">   		   <span class="comment">//calculate center recursively for every input point based on their index</span></span><br><span class="line">   		   clustered_point point = p.next();</span><br><span class="line">   		   <span class="keyword">double</span> [] xyz = lolaToXYZ(point);</span><br><span class="line">   		   X[point.index-<span class="number">1</span>] += xyz[<span class="number">0</span>];</span><br><span class="line">   		   Y[point.index-<span class="number">1</span>] += xyz[<span class="number">1</span>];</span><br><span class="line">   		   Z[point.index-<span class="number">1</span>] += xyz[<span class="number">2</span>];</span><br><span class="line">   		   count[point.index-<span class="number">1</span>] ++;</span><br><span class="line">   	   &#125;</span><br><span class="line">   	   List&lt;Tuple2&lt;clustered_point, Integer&gt;&gt; centerresult = <span class="keyword">new</span> ArrayList&lt;Tuple2&lt;clustered_point,Integer&gt;&gt;();</span><br><span class="line">   	   <span class="keyword">for</span>(<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; n_clusters; i++) &#123;</span><br><span class="line">   		   X[i] /= count[i];</span><br><span class="line">   		   Y[i] /= count[i];</span><br><span class="line">   		   Z[i] /= count[i];</span><br><span class="line">   		   <span class="keyword">if</span>(Double.isNaN(X[i])) &#123;</span><br><span class="line">   	    	   <span class="comment">//center i not calculated in this partition</span></span><br><span class="line">   			   <span class="comment">//initialize to 0</span></span><br><span class="line">   			  Point2D nan_center = <span class="keyword">new</span> Point2D.Double(<span class="number">0</span>,<span class="number">0</span>);</span><br><span class="line">   	    	  centers[i] = <span class="keyword">new</span> clustered_point(nan_center, i+<span class="number">1</span>);</span><br><span class="line">   	       &#125;</span><br><span class="line">   		   <span class="keyword">else</span> &#123;</span><br><span class="line">   			  centers[i] = XYZTolola(X[i], Y[i], Z[i], i + <span class="number">1</span>);</span><br><span class="line">   		   &#125;</span><br><span class="line">   		   Tuple2&lt;clustered_point, Integer&gt; centerwithcount = <span class="keyword">new</span> Tuple2&lt;clustered_point, Integer&gt;(centers[i], count[i]);</span><br><span class="line">   		   centerresult.add(centerwithcount);</span><br><span class="line">   	   &#125;    	   </span><br><span class="line">   	   </span><br><span class="line">   	   <span class="keyword">return</span> centerresult.iterator();</span><br><span class="line">       &#125;,<span class="keyword">true</span>);</span><br><span class="line">       </span><br><span class="line">       JavaPairRDD&lt;Integer, Tuple2&lt;clustered_point, Integer&gt;&gt; centerPairRDD = centerRdd.mapToPair(center -&gt;&#123;</span><br><span class="line">       	<span class="comment">//map centerRDD to key-value pair</span></span><br><span class="line">       	<span class="keyword">return</span> <span class="keyword">new</span> Tuple2&lt;Integer,Tuple2&lt;clustered_point, Integer&gt;&gt;(center._1.index,center);</span><br><span class="line">       &#125;);</span><br><span class="line">      </span><br><span class="line"></span><br><span class="line">       JavaPairRDD&lt;Integer, Tuple2&lt;clustered_point, Integer&gt;&gt; reduced_centerRdd = centerPairRDD.reduceByKey((center1,center2) -&gt; &#123;</span><br><span class="line">       	<span class="comment">//reduce centers of each partition</span></span><br><span class="line">       	<span class="keyword">if</span>(center1._1.point.getX() == <span class="number">0</span> &amp;&amp; center2._1.point.getY() == <span class="number">0</span>) &#123;</span><br><span class="line">       		clustered_point p = <span class="keyword">new</span> clustered_point(<span class="keyword">new</span> Point2D.Double(<span class="number">0</span>,<span class="number">0</span>), center1._1.index);</span><br><span class="line">       		<span class="keyword">int</span> count = <span class="number">0</span>;</span><br><span class="line">       		<span class="keyword">return</span> <span class="keyword">new</span> Tuple2&lt;clustered_point, Integer&gt;(p, count);</span><br><span class="line">       	&#125;</span><br><span class="line">       	<span class="keyword">else</span> <span class="keyword">if</span>(center1._1.point.getX() == <span class="number">0</span>)&#123;</span><br><span class="line">       		<span class="keyword">return</span> center2;</span><br><span class="line">       	&#125;</span><br><span class="line">       	<span class="keyword">else</span> <span class="keyword">if</span>(center2._1.point.getX() == <span class="number">0</span>) &#123;</span><br><span class="line">       		<span class="keyword">return</span> center1;</span><br><span class="line">       	&#125;</span><br><span class="line">       	<span class="keyword">else</span> &#123;</span><br><span class="line">       		<span class="keyword">double</span>[] xyz_1 = lolaToXYZ(center1._1);</span><br><span class="line">       		<span class="keyword">double</span>[] xyz_2 = lolaToXYZ(center2._1);</span><br><span class="line">       		<span class="keyword">double</span> x = (xyz_1[<span class="number">0</span>] * center1._2 + xyz_2[<span class="number">0</span>] * center2._2) / (center1._2 + center2._2);</span><br><span class="line">       		<span class="keyword">double</span> y = (xyz_1[<span class="number">1</span>] * center1._2 + xyz_2[<span class="number">1</span>] * center2._2) / (center1._2 + center2._2);</span><br><span class="line">       		<span class="keyword">double</span> z = (xyz_1[<span class="number">2</span>] * center1._2 + xyz_2[<span class="number">2</span>] * center2._2) / (center1._2 + center2._2);</span><br><span class="line">       		clustered_point p = XYZTolola(x, y, z, center1._1.index);</span><br><span class="line">       		<span class="keyword">return</span> <span class="keyword">new</span> Tuple2&lt;clustered_point, Integer&gt;(p, (center1._2 + center2._2));</span><br><span class="line">       	&#125;</span><br><span class="line">       &#125;);</span><br><span class="line">       </span><br><span class="line">	JavaRDD&lt;clustered_point&gt; centerlistRdd = reduced_centerRdd.map(center -&gt;&#123;</span><br><span class="line">		<span class="keyword">return</span> center._2._1;</span><br><span class="line">	&#125;);</span><br><span class="line">       List&lt;clustered_point&gt; centersList = centerlistRdd.collect();</span><br><span class="line">       clustered_point[] centersarray = <span class="keyword">new</span> clustered_point[num_cluster];</span><br><span class="line">       <span class="keyword">for</span>(clustered_point item : centersList) &#123;</span><br><span class="line">       	centersarray[item.index-<span class="number">1</span>] = item;</span><br><span class="line">       &#125;</span><br><span class="line">	Broadcast&lt;clustered_point[]&gt; bc_centers = sc.broadcast(centersarray);</span><br><span class="line">       JavaRDD&lt;Tuple2&lt;Integer,Double&gt;&gt; cpRdd = dataRdd.mapPartitions(p -&gt;&#123;</span><br><span class="line">       	<span class="comment">//calculate cp sum for each partition</span></span><br><span class="line">       	clustered_point[] centers =  bc_centers.value(); 	</span><br><span class="line">       	<span class="keyword">int</span> n_clusters = bc_n_cluster.value();</span><br><span class="line">       	<span class="keyword">double</span>[] cp = <span class="keyword">new</span> <span class="keyword">double</span>[n_clusters];</span><br><span class="line">       	Arrays.fill(cp, <span class="number">0</span>);</span><br><span class="line">    	   	</span><br><span class="line">       	<span class="keyword">while</span>(p.hasNext()) &#123;</span><br><span class="line">       		clustered_point point = p.next();</span><br><span class="line">       		cp[point.index - <span class="number">1</span>] += getDistance(point.point, centers[point.index-<span class="number">1</span>].point);</span><br><span class="line">       	&#125;</span><br><span class="line">       	List&lt;Tuple2&lt;Integer,Double&gt;&gt; result = <span class="keyword">new</span> ArrayList&lt;Tuple2&lt;Integer,Double&gt;&gt;();</span><br><span class="line">       	<span class="keyword">int</span> cp_index = <span class="number">0</span>;</span><br><span class="line">       	<span class="keyword">for</span>(<span class="keyword">double</span> cpi : cp) &#123;</span><br><span class="line">       		result.add(<span class="keyword">new</span> Tuple2&lt;Integer, Double&gt;(cp_index, cpi));</span><br><span class="line">       		cp_index ++;</span><br><span class="line">       	&#125;</span><br><span class="line">       	<span class="keyword">return</span> result.iterator();</span><br><span class="line">       &#125;,<span class="keyword">true</span>);</span><br><span class="line"></span><br><span class="line">       JavaPairRDD&lt;Integer, Double&gt; cpPairRDD = cpRdd.mapToPair(cp -&gt; &#123;</span><br><span class="line">       	<span class="comment">//map cpRdd to key-value pair</span></span><br><span class="line">       	<span class="keyword">return</span> <span class="keyword">new</span> Tuple2&lt;Integer,Double&gt; (cp._1,cp._2);</span><br><span class="line">       &#125;);</span><br><span class="line">       cpPairRDD.foreach(cp -&gt; System.out.println(<span class="string">"pair cp["</span> + cp._1 + <span class="string">"] :"</span> + cp._2));</span><br><span class="line">       JavaPairRDD&lt;Integer, Double&gt; reduced_cpPairRDD = cpPairRDD.reduceByKey((cp1,cp2) -&gt;&#123;</span><br><span class="line">       	<span class="comment">//reduce cp pair for each partition</span></span><br><span class="line">       	<span class="keyword">return</span> cp1 + cp2;</span><br><span class="line">       &#125;);</span><br><span class="line"></span><br><span class="line">       JavaRDD&lt;Double&gt; result_Rdd = reduced_cpPairRDD.map(cppair -&gt;&#123;</span><br><span class="line">       	<span class="keyword">int</span>[] PointNumOfEachCluster = bc_PointNumOfEachCluster.value();</span><br><span class="line">       	<span class="keyword">double</span> cp = cppair._2 / PointNumOfEachCluster[cppair._1];</span><br><span class="line">       	<span class="keyword">return</span> cp;</span><br><span class="line">       &#125;);</span><br><span class="line"></span><br><span class="line">       List&lt;Double&gt; cpList = result_Rdd.collect();</span><br><span class="line">       <span class="keyword">double</span> cp_index = <span class="number">0</span>;</span><br><span class="line">       <span class="keyword">for</span>(<span class="keyword">double</span> cp : cpList) &#123;</span><br><span class="line">       	cp_index += cp;</span><br><span class="line">       &#125;</span><br><span class="line">       cp_index /= num_cluster;</span><br></pre></td></tr></table></figure>
+
+<h3 id="成果分析"><a href="#成果分析" class="headerlink" title="成果分析"></a>成果分析</h3><p>由于硬件资源有限，Parallel CP Index 算法采用了本机并行的伪分布式，硬件配置如下：</p>
+<p><img src="Device.jpg" alt="硬件配置"></p>
+<p>由于数据集大小有限，因此采用过多的核反而会过大的增加计算节点间的通讯开销。经过测试后发现，性能最佳的时候是使用7个逻辑核，总耗时为5926ms。没有加速的原始算法耗时9357ms，加速0.58倍。</p>
+<h3 id="可提升点"><a href="#可提升点" class="headerlink" title="可提升点"></a>可提升点</h3><ul>
+<li>在该算法中，使用的是RDD默认的数据分区方式，即平均分配。可以针对于数据集的聚类分布的特点自定义数据的分配，如将一些较小的聚类都放到同一个节点中，以避免一个聚类被分散于多个计算节点中，从而增加通讯开销。</li>
+<li>算法中有对于数据RDD的重复使用，可使用Cache的方式将先前使用的数据集进行缓存，从而避免下次使用时重新载入读取的开销。</li>
+</ul>
+
+      
+
+      
+        <div class="page-reward">
+          <a href="javascript:;" class="page-reward-btn tooltip-top">
+            <div class="tooltip tooltip-east">
+            <span class="tooltip-item">
+              赏
+            </span>
+            <span class="tooltip-content">
+              <span class="tooltip-text">
+                <span class="tooltip-inner">
+                  <p class="reward-p"><i class="icon icon-quo-left"></i>谢谢你请我吃糖果<i class="icon icon-quo-right"></i></p>
+                  <div class="reward-box">
+                    
+                    
+                  </div>
+                </span>
+              </span>
+            </span>
+          </div>
+          </a>
         </div>
-        <div class="clearfix"></div>
-    </header>
+      
+    </div>
+    <div class="article-info article-info-index">
+      
+      
+	<div class="article-tag tagcloud">
+		<i class="icon-price-tags icon"></i>
+		<ul class="article-tag-list">
+			 
+        		<li class="article-tag-list-item">
+        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color1">spark</a>
+        		</li>
+      		
+		</ul>
+	</div>
+
+      
+	<div class="article-category tagcloud">
+		<i class="icon-book icon"></i>
+		<ul class="article-tag-list">
+			 
+        		<li class="article-tag-list-item">
+        			<a href="/categories/Parallel-computing//" class="article-tag-list-link color4">Parallel computing</a>
+        		</li>
+      		
+		</ul>
+	</div>
+
+
+      
+
+      
+        
+<div class="share-btn share-icons tooltip-left">
+  <div class="tooltip tooltip-east">
+    <span class="tooltip-item">
+      <a href="javascript:;" class="share-sns share-outer">
+        <i class="icon icon-share"></i>
+      </a>
+    </span>
+    <span class="tooltip-content">
+      <div class="share-wrap">
+        <div class="share-icons">
+          <a class="weibo share-sns" href="javascript:;" data-type="weibo">
+            <i class="icon icon-weibo"></i>
+          </a>
+          <a class="weixin share-sns wxFab" href="javascript:;" data-type="weixin">
+            <i class="icon icon-weixin"></i>
+          </a>
+          <a class="qq share-sns" href="javascript:;" data-type="qq">
+            <i class="icon icon-qq"></i>
+          </a>
+          <a class="douban share-sns" href="javascript:;" data-type="douban">
+            <i class="icon icon-douban"></i>
+          </a>
+          <a class="qzone share-sns" href="javascript:;" data-type="qzone">
+            <i class="icon icon-qzone"></i>
+          </a>
+          <a class="facebook share-sns" href="javascript:;" data-type="facebook">
+            <i class="icon icon-facebook"></i>
+          </a>
+          <a class="twitter share-sns" href="javascript:;" data-type="twitter">
+            <i class="icon icon-twitter"></i>
+          </a>
+          <a class="google share-sns" href="javascript:;" data-type="google">
+            <i class="icon icon-google"></i>
+          </a>
+        </div>
+      </div>
+    </span>
+  </div>
+</div>
+
+<div class="page-modal wx-share js-wx-box">
+    <a class="close js-modal-close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <div class="wx-qrcode">
+      <img src="//pan.baidu.com/share/qrcode?url=http://rootianblog.com/2019/04/16/ParallelCPIndex/" alt="微信分享二维码">
+    </div>
+</div>
+
+<div class="mask js-mask"></div>
+      
+      <div class="clearfix"></div>
+    </div>
   </div>
 </article>
+
+  
+<nav id="article-nav">
+  
+    <a href="/2020/07/10/hello-world/" id="article-nav-newer" class="article-nav-link-wrap">
+      <i class="icon-circle-left"></i>
+      <div class="article-nav-title">
+        
+          Hello World
+        
+      </div>
+    </a>
   
   
-    </div></section>
+</nav>
+
+
+<aside class="wrap-side-operation">
+    <div class="mod-side-operation">
+        
+        <div class="jump-container" id="js-jump-container" style="display:none;">
+            <a href="javascript:void(0)" class="mod-side-operation__jump-to-top">
+                <i class="icon-font icon-back"></i>
+            </a>
+            <div id="js-jump-plan-container" class="jump-plan-container" style="top: -11px;">
+                <i class="icon-font icon-plane jump-plane"></i>
+            </div>
+        </div>
+        
+        
+    </div>
+</aside>
+
+
+
+  
+  
   
 
-    
+  
+
+  
+
+  
 
 
           </div>
@@ -203,8 +376,8 @@
 	var yiliaConfig = {
 		mathjax: true,
 		isHome: false,
-		isPost: false,
-		isArchive: true,
+		isPost: true,
+		isArchive: false,
 		isTag: false,
 		isCategory: false,
 		open_in_new: false,
