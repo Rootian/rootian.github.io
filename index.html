@@ -140,6 +140,104 @@
           <div id="js-content" class="content-ll">
             
   
+    <article id="post-拉取Elasticsearch日志数据并写入excel文件流" class="article article-type-post  article-index" itemscope itemprop="blogPost">
+  <div class="article-inner">
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2020/07/10/%E6%8B%89%E5%8F%96Elasticsearch%E6%97%A5%E5%BF%97%E6%95%B0%E6%8D%AE%E5%B9%B6%E5%86%99%E5%85%A5excel%E6%96%87%E4%BB%B6%E6%B5%81/">滚动查询Elasticsearch日志数据并写入CSV文件流</a>
+    </h1>
+  
+
+        
+        <a href="/2020/07/10/%E6%8B%89%E5%8F%96Elasticsearch%E6%97%A5%E5%BF%97%E6%95%B0%E6%8D%AE%E5%B9%B6%E5%86%99%E5%85%A5excel%E6%96%87%E4%BB%B6%E6%B5%81/" class="archive-article-date">
+  	<time datetime="2020-07-10T08:18:07.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2020-07-10</time>
+</a>
+        
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h2 id="elasticsearch"><a href="#elasticsearch" class="headerlink" title="elasticsearch"></a>elasticsearch</h2><h3 id="es-简介"><a href="#es-简介" class="headerlink" title="es 简介"></a>es 简介</h3><p>es是基于Lucene的<strong>搜索服务器</strong>。一个分布式、高扩展、高实时的搜索与<strong>数据分析引擎</strong>。它提供了一个分布式多用户能力的全文搜索引擎，基于<strong>RESTful</strong> web接口。在本文中，es用于存储<strong>日志数据</strong>。</p>
+<h3 id="es-特点"><a href="#es-特点" class="headerlink" title="es 特点"></a>es 特点</h3><ul>
+<li><p><strong>Restful API</strong>    </p>
+<p>es是基于Lucene库开发的，Lucene具有搜索引擎的功能，但要求使用者具有一定搜索引擎原理。因此es对Lucene进行了封装，将其对搜索引擎的操作都封装成了<strong>Restful</strong>的api。</p>
+</li>
+<li><p><strong>海量数据存储</strong></p>
+<p>es是一个<strong>分布式引擎</strong>，主要采用<strong>分片</strong>的方式，每个分片可以有0个或多个副本。每个节点托管一个或多个分片，并充当协调器将操作委托给正确的分片。数据可以存储在不同的分片中。</p>
+</li>
+<li><p><strong>索引+类型+文档</strong></p>
+<p>通常来说，es的<strong>索引</strong>对应于关系数据库的<strong>数据库</strong>，<strong>类型</strong>对应于<strong>表结构</strong>，<strong>文档</strong>对应于<strong>一条记录</strong></p>
+</li>
+</ul>
+<h2 id="elasticsearch-查询日志数据"><a href="#elasticsearch-查询日志数据" class="headerlink" title="elasticsearch 查询日志数据"></a>elasticsearch 查询日志数据</h2><h3 id="设置查询条件"><a href="#设置查询条件" class="headerlink" title="设置查询条件"></a>设置查询条件</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">BoolQueryBuilder boolBuilder = QueryBuilders.boolQuery();</span><br><span class="line">filters.forEach((k, v) -&gt; boolBuilder.must(QueryBuilders.matchQuery(k, v)));</span><br><span class="line">SearchSourceBuilder searchSourceBuilder = <span class="keyword">new</span> SearchSourceBuilder();</span><br><span class="line">searchSourceBuilder.query(boolBuilder);</span><br><span class="line">searchSourceBuilder.size(<span class="number">10000</span>);</span><br></pre></td></tr></table></figure>
+<p>BoolQueryBuilder 建立查询条件，通常采用（k，v）形式，将其加入searchSourceBuilder中</p>
+<h3 id="初始化查询"><a href="#初始化查询" class="headerlink" title="初始化查询"></a>初始化查询</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">SearchRequest searchRequest = <span class="keyword">new</span> SearchRequest();</span><br><span class="line">searchRequest.indices(Const.PUSH_INDEX + <span class="string">"*"</span>);</span><br><span class="line">searchRequest.source(searchSourceBuilder);</span><br><span class="line">searchRequest.scroll(scroll);</span><br></pre></td></tr></table></figure>
+<p>设置searchRequest参数：查询索引、查询条件。本文使用scroll滚动查询来优化对于大数据量的数据查询，防止深度分页。还有可选参数是searchType，用来设置查询方式。</p>
+<h3 id="滚动查询"><a href="#滚动查询" class="headerlink" title="滚动查询"></a>滚动查询</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">SearchResponse searchResponse = <span class="keyword">this</span>.client.search(searchRequest, RequestOptions.DEFAULT);</span><br><span class="line">String scrollId = searchResponse.getScrollId();</span><br><span class="line">SearchHit[] hits = searchResponse.getHits().getHits();</span><br><span class="line">List&lt;Map&lt;String, Object&gt;&gt; hitsList = <span class="keyword">new</span> ArrayList&lt;&gt;(hits.length);</span><br><span class="line"><span class="keyword">for</span>(SearchHit hit : hits)&#123;</span><br><span class="line">    hitsList.add(hit.getSourceAsMap());</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">//滚动查询</span></span><br><span class="line"><span class="keyword">while</span>(hits.length &gt; <span class="number">0</span>)&#123;</span><br><span class="line">    SearchScrollRequest scrollRequest = <span class="keyword">new</span> SearchScrollRequest(scrollId);</span><br><span class="line">    scrollRequest.scroll(scroll);</span><br><span class="line">    searchResponse = <span class="keyword">this</span>.client.scroll(scrollRequest, RequestOptions.DEFAULT);</span><br><span class="line">    scrollId = searchResponse.getScrollId();</span><br><span class="line">    hits = searchResponse.getHits().getHits();</span><br><span class="line">    <span class="keyword">for</span>(SearchHit hit : hits)&#123;</span><br><span class="line">        hitsList.add(hit.getSourceAsMap());</span><br><span class="line">    &#125;</span><br><span class="line">    logger.info(<span class="string">"hits-length: "</span> + hitsList.size());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>首先执行第一次查询，结果读入searchResponse中，会返回一个scrollID，相当于一个快照游标，滚动查询每次读取scrollID并从上一次查询结束位置开始查询。scroll参数是设置查询需要在一定时间内完成，结果存储在hitsList中。</p>
+<h2 id="查询结果写入CSV"><a href="#查询结果写入CSV" class="headerlink" title="查询结果写入CSV"></a>查询结果写入CSV</h2><h3 id="设置分隔符"><a href="#设置分隔符" class="headerlink" title="设置分隔符"></a>设置分隔符</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//分割符</span></span><br><span class="line"><span class="keyword">final</span> String CSV_COLUMN_SEPARATOR = <span class="string">","</span>;</span><br><span class="line"><span class="keyword">final</span> String CSV_RN = <span class="string">"\r\n"</span>;</span><br></pre></td></tr></table></figure>
+<p> csv文件以逗号分隔字段，以换行符分隔记录</p>
+<h3 id="设置表头"><a href="#设置表头" class="headerlink" title="设置表头"></a>设置表头</h3> <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//设置表头</span></span><br><span class="line"><span class="keyword">for</span> (String col : colNames) &#123;</span><br><span class="line">    buf.append(col).append(CSV_COLUMN_SEPARATOR);</span><br><span class="line">&#125;</span><br><span class="line">buf.append(CSV_RN);</span><br></pre></td></tr></table></figure>
+<p> 利用StringBuffer来存储es数据</p>
+<h3 id="写入数据"><a href="#写入数据" class="headerlink" title="写入数据"></a>写入数据</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//写入Data</span></span><br><span class="line"><span class="keyword">if</span>(data != <span class="keyword">null</span> &amp;&amp; data.size() != <span class="number">0</span>) &#123;</span><br><span class="line">    <span class="keyword">for</span> (Map&lt;String, Object&gt; record : data) &#123;</span><br><span class="line">        <span class="keyword">for</span> (String key : mapKeys) &#123;</span><br><span class="line">            <span class="keyword">if</span>(key.equals(<span class="string">"timestamp"</span>))&#123;</span><br><span class="line">                <span class="comment">//时间戳转时间格式</span></span><br><span class="line">                SimpleDateFormat timeFormat = <span class="keyword">new</span> SimpleDateFormat(<span class="string">"yyyy-MM-dd HH:mm:ss"</span>);</span><br><span class="line">                String time = timeFormat.format(record.get(<span class="string">"timestamp"</span>));</span><br><span class="line">                record.put(<span class="string">"timestamp"</span>, time);</span><br><span class="line">            &#125;</span><br><span class="line">            buf.append(record.get(key)).append(CSV_COLUMN_SEPARATOR);</span><br><span class="line">        &#125;</span><br><span class="line">        buf.append(CSV_RN);</span><br><span class="line">        count ++;</span><br><span class="line">        <span class="keyword">if</span> (count % <span class="number">1000</span> == <span class="number">0</span>) &#123;</span><br><span class="line">            logger.info(<span class="string">"写入数据： "</span> + count + <span class="string">" 条"</span>);</span><br><span class="line">        &#125;</span><br><span class="line">        outputStream.write(buf.toString().getBytes(<span class="string">"GBK"</span>));</span><br><span class="line">        buf.setLength(<span class="number">0</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line">outputStream.write(buf.toString().getBytes(<span class="string">"GBK"</span>));</span><br></pre></td></tr></table></figure>
+<p> 将每一条记录逐行读入StringBuffer中，并写入输出流</p>
+<h2 id="不足"><a href="#不足" class="headerlink" title="不足"></a>不足</h2><p>尽管利用滚动查询的方式进行优化，但在大数据量的拉取如十万级别的数据时，es查询需要消耗大量的时间，且与服务器性能相关，有时会出现客户端连接超时的情况。后续希望对es查询进行性能上的进一步优化。</p>
+
+      
+
+      
+    </div>
+    <div class="article-info article-info-index">
+      
+      
+	<div class="article-tag tagcloud">
+		<i class="icon-price-tags icon"></i>
+		<ul class="article-tag-list">
+			 
+        		<li class="article-tag-list-item">
+        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color4">elasticsearch</a>
+        		</li>
+      		
+		</ul>
+	</div>
+
+      
+
+      
+        <p class="article-more-link">
+          <a class="article-more-a" href="/2020/07/10/%E6%8B%89%E5%8F%96Elasticsearch%E6%97%A5%E5%BF%97%E6%95%B0%E6%8D%AE%E5%B9%B6%E5%86%99%E5%85%A5excel%E6%96%87%E4%BB%B6%E6%B5%81/">展开全文 >></a>
+        </p>
+      
+
+      
+      <div class="clearfix"></div>
+    </div>
+  </div>
+</article>
+
+<aside class="wrap-side-operation">
+    <div class="mod-side-operation">
+        
+        <div class="jump-container" id="js-jump-container" style="display:none;">
+            <a href="javascript:void(0)" class="mod-side-operation__jump-to-top">
+                <i class="icon-font icon-back"></i>
+            </a>
+            <div id="js-jump-plan-container" class="jump-plan-container" style="top: -11px;">
+                <i class="icon-font icon-plane jump-plane"></i>
+            </div>
+        </div>
+        
+        
+    </div>
+</aside>
+
+
+
+
+  
     <article id="post-hello-world" class="article article-type-post  article-index" itemscope itemprop="blogPost">
   <div class="article-inner">
     
@@ -442,6 +540,10 @@ MathJax.Hub.Queue(function() {
              
               <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color1">spark</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color4">elasticsearch</a>
               </li>
             
             <div class="clearfix"></div>
