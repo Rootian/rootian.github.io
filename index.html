@@ -140,6 +140,111 @@
           <div id="js-content" class="content-ll">
             
   
+    <article id="post-Esper学习之简单入门" class="article article-type-post  article-index" itemscope itemprop="blogPost">
+  <div class="article-inner">
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2020/07/21/Esper%E5%AD%A6%E4%B9%A0%E4%B9%8B%E7%AE%80%E5%8D%95%E5%85%A5%E9%97%A8/">Esper学习之简单入门</a>
+    </h1>
+  
+
+        
+        <a href="/2020/07/21/Esper%E5%AD%A6%E4%B9%A0%E4%B9%8B%E7%AE%80%E5%8D%95%E5%85%A5%E9%97%A8/" class="archive-article-date">
+  	<time datetime="2020-07-21T03:24:41.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2020-07-21</time>
+</a>
+        
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h2 id="CEP"><a href="#CEP" class="headerlink" title="CEP"></a>CEP</h2><h3 id="CEP简介"><a href="#CEP简介" class="headerlink" title="CEP简介"></a>CEP简介</h3><p>CEP全称Complex Event Processing，即复杂事件处理，是一种<strong>在动态环境中对于事件数据流的分析技术</strong>，不同的事件之间往往存在着一定的联系，cep可以利用过滤、关联、聚合等技术，根据事件的<strong>时序关系、聚合关系、属性匹配</strong>等制定<strong>过滤规则</strong>，持续地从事件流中提取出符合规则的事件序列，最终为上层对于<strong>复杂事件的决策</strong>提供数据基础。</p>
+<h3 id="CEP理解"><a href="#CEP理解" class="headerlink" title="CEP理解"></a>CEP理解</h3><p>可以类比常见的<strong>数据库查询</strong>，在mysql中，数据是在数据库中的，而数据库操作人员通过编写sql语句，去查询<strong>静态</strong>的数据库数据，将符合规则的数据提取出来。CEP的目的也是提取符合规则的数据，但CEP面对的是<strong>动态的事件数据流</strong>，就像是一个<strong>管道</strong>，事件流从这个管道中源源不断地流过，是<strong>动态</strong>的。而CEP通过在这个管道中设定过滤规则，就像是一张滤网，<strong>是静态的</strong>。数据流过，符合规则的数据就会触发CEP的监听器，从而被提取出来</p>
+<h2 id="Esper"><a href="#Esper" class="headerlink" title="Esper"></a>Esper</h2><p>Esper是一个<strong>开源的复杂事件处理引擎</strong>，其目的就是实现CEP的功能，让用户可以通过它提供的接口，构建一个用于处理复杂事件的应用程序。Esper提供了一种叫做<strong>EPL</strong>的事件处理语言，类似于sql，用来设定事件过滤规则，相比于sql，EPL可以<strong>设定时间窗口、长度窗口</strong>等。</p>
+<h2 id="Esper简单入门"><a href="#Esper简单入门" class="headerlink" title="Esper简单入门"></a>Esper简单入门</h2><h3 id="基于springboot的配置"><a href="#基于springboot的配置" class="headerlink" title="基于springboot的配置"></a>基于springboot的配置</h3><p>首先，使用idea 建立一个SpringBoot项目，在idea中勾选<strong>Spring Initialzr</strong>即可。项目生成后在pom.xml中导入esper的maven依赖：</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>com.espertech<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>esper<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">version</span>&gt;</span>7.1.0<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="事件类构建"><a href="#事件类构建" class="headerlink" title="事件类构建"></a>事件类构建</h3><p>本次事件采用学生约课事件，userID即学生id，appoint是约课，值为1就是约了一次课</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">AppointStuEvent</span> </span>&#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">int</span> userID;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">int</span> appoint;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">AppointStuEvent</span><span class="params">(<span class="keyword">int</span> userID, <span class="keyword">int</span> appoint)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">this</span>.userID = userID;</span><br><span class="line">        <span class="keyword">this</span>.appoint = appoint;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="初始化Esper环境"><a href="#初始化Esper环境" class="headerlink" title="初始化Esper环境"></a>初始化Esper环境</h3><p>首先创建一个Configuration对象，加载配置，并将要监听的事件类放入该对象中</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">Configuration configuration = <span class="keyword">new</span> Configuration();</span><br><span class="line">configuration.addEventType(AppointStuEvent<span class="class">.<span class="keyword">class</span>)</span>;</span><br></pre></td></tr></table></figure>
+
+<p>然后创建事件监听器，通常是实现UpdateListener接口，然后实现update方法，加入对于符合规则的事件的处理方法。本案例中就直接打印输出。newEvents是在一个滑动窗口中符合规则的所有事件。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="class"><span class="keyword">class</span> <span class="title">AppointStuListener</span> <span class="keyword">implements</span> <span class="title">UpdateListener</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">update</span><span class="params">(EventBean[] newEvents, EventBean[] oldEvents)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">for</span> (EventBean event : newEvents) &#123;</span><br><span class="line">            <span class="keyword">if</span> (event == <span class="keyword">null</span>)</span><br><span class="line">                <span class="keyword">continue</span>;</span><br><span class="line">            <span class="keyword">int</span> id = (<span class="keyword">int</span>)event.get(<span class="string">"userID"</span>);</span><br><span class="line">            <span class="keyword">int</span> appointCount = (<span class="keyword">int</span>)event.get(<span class="string">"appointCount"</span>);</span><br><span class="line">            System.out.println(String.format(<span class="string">"rule 1 : userID : %d, appointCount : %d"</span>, id, appointCount));</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>设定规则EPL语句：查询5秒之内连续约课两次的事件，提取学生ID与5秒内约课总次数</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">String epl = <span class="string">"select userID, sum(appoint) as appointCount from event.AppointStuEvent.win:time_batch(5 sec) group by userID having sum(appoint) &gt;= 2"</span>;</span><br></pre></td></tr></table></figure>
+
+<p>接着创建过滤器实例,将监听器与EPL语句传入过滤器</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">EPServiceProvider epServiceProvider = EPServiceProviderManager.getDefaultProvider(configuration);</span><br><span class="line">epServiceProvider.getEPAdministrator().createEPL(epl).addListener(<span class="keyword">new</span> AppointStuListener());</span><br><span class="line">EPRuntime epRuntime = epServiceProvider.getEPRuntime();</span><br></pre></td></tr></table></figure>
+
+<p>然后模拟事件流，本次案例中写了一个generateEvent方法，使用随机数的方式生成事件</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">static</span> AppointStuEvent <span class="title">generateEvent</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    Random random = <span class="keyword">new</span> Random();</span><br><span class="line">    <span class="keyword">int</span> id = random.nextInt(<span class="number">5</span>);</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">new</span> AppointStuEvent(id, <span class="number">1</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>最后发送事件，每隔1秒发送一个，方便观察输出结果</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">while</span> (<span class="keyword">true</span>) &#123;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        Thread.sleep(<span class="number">1000</span>);</span><br><span class="line">    &#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</span><br><span class="line">        e.printStackTrace();</span><br><span class="line">    &#125;</span><br><span class="line">    epRuntime.sendEvent(AppointStuPattern.generateEvent());</span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure>
+
+<p>得到输出结果如下图：<br><img src="/images/esper1.png" alt="result"></p>
+
+      
+
+      
+    </div>
+    <div class="article-info article-info-index">
+      
+      
+	<div class="article-tag tagcloud">
+		<i class="icon-price-tags icon"></i>
+		<ul class="article-tag-list">
+			 
+        		<li class="article-tag-list-item">
+        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color1">Esper</a>
+        		</li>
+      		 
+        		<li class="article-tag-list-item">
+        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color4">CEP</a>
+        		</li>
+      		
+		</ul>
+	</div>
+
+      
+
+      
+        <p class="article-more-link">
+          <a class="article-more-a" href="/2020/07/21/Esper%E5%AD%A6%E4%B9%A0%E4%B9%8B%E7%AE%80%E5%8D%95%E5%85%A5%E9%97%A8/">展开全文 >></a>
+        </p>
+      
+
+      
+      <div class="clearfix"></div>
+    </div>
+  </div>
+</article>
+
+<aside class="wrap-side-operation">
+    <div class="mod-side-operation">
+        
+        <div class="jump-container" id="js-jump-container" style="display:none;">
+            <a href="javascript:void(0)" class="mod-side-operation__jump-to-top">
+                <i class="icon-font icon-back"></i>
+            </a>
+            <div id="js-jump-plan-container" class="jump-plan-container" style="top: -11px;">
+                <i class="icon-font icon-plane jump-plane"></i>
+            </div>
+        </div>
+        
+        
+    </div>
+</aside>
+
+
+
+
+  
     <article id="post-拉取Elasticsearch日志数据并写入excel文件流" class="article article-type-post  article-index" itemscope itemprop="blogPost">
   <div class="article-inner">
     
@@ -174,7 +279,7 @@
 </ul>
 <h2 id="elasticsearch-查询日志数据"><a href="#elasticsearch-查询日志数据" class="headerlink" title="elasticsearch 查询日志数据"></a>elasticsearch 查询日志数据</h2><h3 id="设置查询条件"><a href="#设置查询条件" class="headerlink" title="设置查询条件"></a>设置查询条件</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">BoolQueryBuilder boolBuilder = QueryBuilders.boolQuery();</span><br><span class="line">filters.forEach((k, v) -&gt; boolBuilder.must(QueryBuilders.matchQuery(k, v)));</span><br><span class="line">SearchSourceBuilder searchSourceBuilder = <span class="keyword">new</span> SearchSourceBuilder();</span><br><span class="line">searchSourceBuilder.query(boolBuilder);</span><br><span class="line">searchSourceBuilder.size(<span class="number">10000</span>);</span><br></pre></td></tr></table></figure>
 <p>BoolQueryBuilder 建立查询条件，通常采用（k，v）形式，将其加入searchSourceBuilder中</p>
-<h3 id="初始化查询"><a href="#初始化查询" class="headerlink" title="初始化查询"></a>初始化查询</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">SearchRequest searchRequest = <span class="keyword">new</span> SearchRequest();</span><br><span class="line">searchRequest.indices(Const.PUSH_INDEX + <span class="string">"*"</span>);</span><br><span class="line">searchRequest.source(searchSourceBuilder);</span><br><span class="line">searchRequest.scroll(scroll);</span><br></pre></td></tr></table></figure>
+<h3 id="初始化查询"><a href="#初始化查询" class="headerlink" title="初始化查询"></a>初始化查询</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">SearchRequest searchRequest = <span class="keyword">new</span> SearchRequest();</span><br><span class="line">searchRequest.indices(Index);</span><br><span class="line">searchRequest.source(searchSourceBuilder);</span><br><span class="line">searchRequest.scroll(scroll);</span><br></pre></td></tr></table></figure>
 <p>设置searchRequest参数：查询索引、查询条件。本文使用scroll滚动查询来优化对于大数据量的数据查询，防止深度分页。还有可选参数是searchType，用来设置查询方式。</p>
 <h3 id="滚动查询"><a href="#滚动查询" class="headerlink" title="滚动查询"></a>滚动查询</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">SearchResponse searchResponse = <span class="keyword">this</span>.client.search(searchRequest, RequestOptions.DEFAULT);</span><br><span class="line">String scrollId = searchResponse.getScrollId();</span><br><span class="line">SearchHit[] hits = searchResponse.getHits().getHits();</span><br><span class="line">List&lt;Map&lt;String, Object&gt;&gt; hitsList = <span class="keyword">new</span> ArrayList&lt;&gt;(hits.length);</span><br><span class="line"><span class="keyword">for</span>(SearchHit hit : hits)&#123;</span><br><span class="line">    hitsList.add(hit.getSourceAsMap());</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">//滚动查询</span></span><br><span class="line"><span class="keyword">while</span>(hits.length &gt; <span class="number">0</span>)&#123;</span><br><span class="line">    SearchScrollRequest scrollRequest = <span class="keyword">new</span> SearchScrollRequest(scrollId);</span><br><span class="line">    scrollRequest.scroll(scroll);</span><br><span class="line">    searchResponse = <span class="keyword">this</span>.client.scroll(scrollRequest, RequestOptions.DEFAULT);</span><br><span class="line">    scrollId = searchResponse.getScrollId();</span><br><span class="line">    hits = searchResponse.getHits().getHits();</span><br><span class="line">    <span class="keyword">for</span>(SearchHit hit : hits)&#123;</span><br><span class="line">        hitsList.add(hit.getSourceAsMap());</span><br><span class="line">    &#125;</span><br><span class="line">    logger.info(<span class="string">"hits-length: "</span> + hitsList.size());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <p>首先执行第一次查询，结果读入searchResponse中，会返回一个scrollID，相当于一个快照游标，滚动查询每次读取scrollID并从上一次查询结束位置开始查询。scroll参数是设置查询需要在一定时间内完成，结果存储在hitsList中。</p>
@@ -182,7 +287,7 @@
 <p> csv文件以逗号分隔字段，以换行符分隔记录</p>
 <h3 id="设置表头"><a href="#设置表头" class="headerlink" title="设置表头"></a>设置表头</h3> <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//设置表头</span></span><br><span class="line"><span class="keyword">for</span> (String col : colNames) &#123;</span><br><span class="line">    buf.append(col).append(CSV_COLUMN_SEPARATOR);</span><br><span class="line">&#125;</span><br><span class="line">buf.append(CSV_RN);</span><br></pre></td></tr></table></figure>
 <p> 利用StringBuffer来存储es数据</p>
-<h3 id="写入数据"><a href="#写入数据" class="headerlink" title="写入数据"></a>写入数据</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//写入Data</span></span><br><span class="line"><span class="keyword">if</span>(data != <span class="keyword">null</span> &amp;&amp; data.size() != <span class="number">0</span>) &#123;</span><br><span class="line">    <span class="keyword">for</span> (Map&lt;String, Object&gt; record : data) &#123;</span><br><span class="line">        <span class="keyword">for</span> (String key : mapKeys) &#123;</span><br><span class="line">            <span class="keyword">if</span>(key.equals(<span class="string">"timestamp"</span>))&#123;</span><br><span class="line">                <span class="comment">//时间戳转时间格式</span></span><br><span class="line">                SimpleDateFormat timeFormat = <span class="keyword">new</span> SimpleDateFormat(<span class="string">"yyyy-MM-dd HH:mm:ss"</span>);</span><br><span class="line">                String time = timeFormat.format(record.get(<span class="string">"timestamp"</span>));</span><br><span class="line">                record.put(<span class="string">"timestamp"</span>, time);</span><br><span class="line">            &#125;</span><br><span class="line">            buf.append(record.get(key)).append(CSV_COLUMN_SEPARATOR);</span><br><span class="line">        &#125;</span><br><span class="line">        buf.append(CSV_RN);</span><br><span class="line">        count ++;</span><br><span class="line">        <span class="keyword">if</span> (count % <span class="number">1000</span> == <span class="number">0</span>) &#123;</span><br><span class="line">            logger.info(<span class="string">"写入数据： "</span> + count + <span class="string">" 条"</span>);</span><br><span class="line">        &#125;</span><br><span class="line">        outputStream.write(buf.toString().getBytes(<span class="string">"GBK"</span>));</span><br><span class="line">        buf.setLength(<span class="number">0</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line">outputStream.write(buf.toString().getBytes(<span class="string">"GBK"</span>));</span><br></pre></td></tr></table></figure>
+<h3 id="写入数据"><a href="#写入数据" class="headerlink" title="写入数据"></a>写入数据</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//写入Data</span></span><br><span class="line"><span class="keyword">if</span>(data != <span class="keyword">null</span> &amp;&amp; data.size() != <span class="number">0</span>) &#123;</span><br><span class="line">    <span class="keyword">for</span> (Map&lt;String, Object&gt; record : data) &#123;</span><br><span class="line">        <span class="keyword">for</span> (String key : mapKeys) &#123;</span><br><span class="line">            <span class="keyword">if</span>(key.equals(<span class="string">"timestamp"</span>))&#123;</span><br><span class="line">                <span class="comment">//时间戳转时间格式</span></span><br><span class="line">                SimpleDateFormat timeFormat = <span class="keyword">new</span> SimpleDateFormat(<span class="string">"yyyy-MM-dd HH:mm:ss"</span>);</span><br><span class="line">                String time = timeFormat.format(record.get(<span class="string">"timestamp"</span>));</span><br><span class="line">                record.put(<span class="string">"timestamp"</span>, time);</span><br><span class="line">            &#125;</span><br><span class="line">            buf.append(record.get(key)).append(CSV_COLUMN_SEPARATOR);</span><br><span class="line">        &#125;</span><br><span class="line">        buf.append(CSV_RN);</span><br><span class="line">        count ++;</span><br><span class="line">        <span class="keyword">if</span> (count % <span class="number">1000</span> == <span class="number">0</span>) &#123;</span><br><span class="line">            logger.info(<span class="string">"写入数据： "</span> + count + <span class="string">" 条"</span>);</span><br><span class="line">        &#125;</span><br><span class="line">    outputStream.write(buf.toString().getBytes(<span class="string">"GBK"</span>));</span><br><span class="line">        buf.setLength(<span class="number">0</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line">outputStream.write(buf.toString().getBytes(<span class="string">"GBK"</span>));</span><br></pre></td></tr></table></figure>
 <p> 将每一条记录逐行读入StringBuffer中，并写入输出流</p>
 <h2 id="不足"><a href="#不足" class="headerlink" title="不足"></a>不足</h2><p>尽管利用滚动查询的方式进行优化，但在大数据量的拉取如十万级别的数据时，es查询需要消耗大量的时间，且与服务器性能相关，有时会出现客户端连接超时的情况。后续希望对es查询进行性能上的进一步优化。</p>
 
@@ -469,6 +574,14 @@ MathJax.Hub.Queue(function() {
              
               <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color4">elasticsearch</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color1">Esper</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color4">CEP</a>
               </li>
             
             <div class="clearfix"></div>
