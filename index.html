@@ -140,6 +140,115 @@
           <div id="js-content" class="content-ll">
             
   
+    <article id="post-JVM调优学习之调优入门" class="article article-type-post  article-index" itemscope itemprop="blogPost">
+  <div class="article-inner">
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2020/08/04/JVM%E8%B0%83%E4%BC%98%E5%AD%A6%E4%B9%A0%E4%B9%8B%E8%B0%83%E4%BC%98%E5%85%A5%E9%97%A8/">JVM调优学习之调优入门</a>
+    </h1>
+  
+
+        
+        <a href="/2020/08/04/JVM%E8%B0%83%E4%BC%98%E5%AD%A6%E4%B9%A0%E4%B9%8B%E8%B0%83%E4%BC%98%E5%85%A5%E9%97%A8/" class="archive-article-date">
+  	<time datetime="2020-08-04T05:06:52.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2020-08-04</time>
+</a>
+        
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h2 id="JVM调优总结"><a href="#JVM调优总结" class="headerlink" title="JVM调优总结"></a>JVM调优总结</h2><h3 id="测试环境"><a href="#测试环境" class="headerlink" title="测试环境"></a>测试环境</h3><p>JVM配置为6核16G，Java 8，堆大小默认<br>测试用例代码如下：每100ms创建150线程，每个线程创建512kb的对象</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@SpringBootApplication</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">PerformanceApplication</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">        SpringApplication.run(PerformanceApplication<span class="class">.<span class="keyword">class</span>, <span class="title">args</span>)</span>;</span><br><span class="line">        Executors.newScheduledThreadPool(<span class="number">1</span>).scheduleAtFixedRate(() -&gt; &#123;</span><br><span class="line">            <span class="keyword">new</span> Thread(() -&gt; &#123;</span><br><span class="line">                <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">150</span>; i++) &#123;</span><br><span class="line">                    <span class="keyword">try</span> &#123;</span><br><span class="line">                        <span class="keyword">byte</span>[] temp = <span class="keyword">new</span> <span class="keyword">byte</span>[<span class="number">1024</span> * <span class="number">512</span>];</span><br><span class="line">                        Thread.sleep(<span class="keyword">new</span> Random().nextInt(<span class="number">1000</span>)); <span class="comment">// </span></span><br><span class="line">                    &#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</span><br><span class="line">                        e.printStackTrace();</span><br><span class="line">                    &#125;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;).start();</span><br><span class="line">        &#125;, <span class="number">100</span>, <span class="number">100</span>, TimeUnit.MILLISECONDS);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="GCviewer分析"><a href="#GCviewer分析" class="headerlink" title="GCviewer分析"></a>GCviewer分析</h3><p>使用GCviewer对GC情况进行分析。<br>首先运行程序jar包，并将GC输出到log日志文件中：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">java -Xmx1024m -Xloggc:gc.log -jar performance-<span class="number">1.0</span><span class="number">.0</span>.jar</span><br></pre></td></tr></table></figure>
+<p>用GCviewer将日志文件打开进行查看</p>
+<p><img src="/images/GC%E6%9A%82%E5%81%9C%E4%BF%A1%E6%81%AF.png" alt="GC信息"></p>
+<p>这是GC暂停的事件细节信息，不过这个不够直观，可以通过汇总的方式查看统计信息：</p>
+<p><img src="/images/GCpause%E6%B1%87%E6%80%BB.png" alt="GC统计信息"></p>
+<p>可以看出，总共的停顿时间是2.45秒，总停顿次数是285次。full GC平均时间是38ms， young GC平均时间是7ms，大概是5倍的差距，所以说fullGC的消耗还是比较多的。但总时间上full GC是0.54s， young GC是1.91s，大概是3倍差距，可见相比于full GC，youngGC发生的极为频繁。</p>
+<h3 id="调整GC线程"><a href="#调整GC线程" class="headerlink" title="调整GC线程"></a>调整GC线程</h3><p>使用jcmd命令可以查看当前运行的jvm线程，然后使用jstat命令可以动态的输出当前GC的情况，命令如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">jstat -gc -h10 <span class="number">36537</span> <span class="number">1000</span></span><br></pre></td></tr></table></figure>
+<p>其中，h10代表每10行输出一次标题，1000代表每1000ms输出一次GC情况，36527是线程id<br>初始使用的是默认的并行收集器，GC线程为10：</p>
+<p><img src="/images/%E8%B0%83%E4%BC%98%E5%89%8Dgc%E7%BA%BF%E7%A8%8B%E6%95%B0.png" alt=""></p>
+<p>默认配置下，GC情况输出如图：</p>
+<p><img src="/images/%E8%B0%83%E4%BC%98%E5%89%8Djstat10%E7%BA%BF%E7%A8%8B.png" alt=""></p>
+<p>计算可得10s内GC的总时间是0.075s，full GC没有发生， young GC发生了21次，这个性能还是非常不错的。接下来尝试调整GC线程。</p>
+<h4 id="线程数-5"><a href="#线程数-5" class="headerlink" title="线程数 5"></a>线程数 5</h4><p>结果如下：</p>
+<p><img src="/images/%E7%AC%AC%E4%B8%80%E6%AC%A1%E8%B0%83%E4%BC%985%E7%BA%BF%E7%A8%8B.png" alt=""></p>
+<p>可见10s内GC的总时间为0.3s，性能大大下降，full GC发生了1次。因此调低线程应当是不合适的。</p>
+<h4 id="线程数-20"><a href="#线程数-20" class="headerlink" title="线程数 20"></a>线程数 20</h4><p>结果如下：</p>
+<p><img src="/images/%E7%AC%AC%E4%BA%8C%E6%AC%A1%E8%B0%83%E4%BC%9820%E7%BA%BF%E7%A8%8B.png" alt=""></p>
+<p>10s内GC的总时间是0.16s，没有发生full GC相比默认情况性能也有所下降。 所以，其实很多时候， JVM配置的默认参数都是性能最优的参数。</p>
+<h3 id="调整垃圾收集器"><a href="#调整垃圾收集器" class="headerlink" title="调整垃圾收集器"></a>调整垃圾收集器</h3><p>接下来尝试更换垃圾收集器，默认是并行收集器</p>
+<h4 id="CMS收集器"><a href="#CMS收集器" class="headerlink" title="CMS收集器"></a>CMS收集器</h4><p>更换命令如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">java -Xmx1024m -Xloggc:gc3.log -XX:+UseConcMarkSweepGC -jar performance-<span class="number">1.0</span><span class="number">.0</span>.jar</span><br></pre></td></tr></table></figure>
+<p>运行结果如下：</p>
+<p><img src="/images/%E4%BD%BF%E7%94%A8CMS.png" alt=""></p>
+<p>GC时间是0.5s， 发生了25次full GC，可见CMS是完全不适合本次测试用例程序的</p>
+<h4 id="G1-收集器"><a href="#G1-收集器" class="headerlink" title="G1 收集器"></a>G1 收集器</h4><p>更换命令如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">java -Xmx1024m -Xloggc:gc3.log -XX:+UseG1GC -jar performance-1.0.0.jar</span><br></pre></td></tr></table></figure>
+
+<p>运行结果如下：</p>
+<p><img src="/images/%E4%BD%BF%E7%94%A8G1.png" alt=""></p>
+<p>GC时间是0.08s， 没有发生fullGC，这是因为G1收集器本身的机制，性能上总的来说和默认收集器差不多。</p>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>通过对JVM的实际配置查看及调优尝试，对于JVM调优以及GC有了更加深刻的认识， GC调优是个很繁杂很漫长的过程，最优参数通常都需要靠不断的尝试或者经验得到。</p>
+
+      
+
+      
+    </div>
+    <div class="article-info article-info-index">
+      
+      
+	<div class="article-tag tagcloud">
+		<i class="icon-price-tags icon"></i>
+		<ul class="article-tag-list">
+			 
+        		<li class="article-tag-list-item">
+        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color4">JVM</a>
+        		</li>
+      		
+		</ul>
+	</div>
+
+      
+
+      
+        <p class="article-more-link">
+          <a class="article-more-a" href="/2020/08/04/JVM%E8%B0%83%E4%BC%98%E5%AD%A6%E4%B9%A0%E4%B9%8B%E8%B0%83%E4%BC%98%E5%85%A5%E9%97%A8/">展开全文 >></a>
+        </p>
+      
+
+      
+      <div class="clearfix"></div>
+    </div>
+  </div>
+</article>
+
+<aside class="wrap-side-operation">
+    <div class="mod-side-operation">
+        
+        <div class="jump-container" id="js-jump-container" style="display:none;">
+            <a href="javascript:void(0)" class="mod-side-operation__jump-to-top">
+                <i class="icon-font icon-back"></i>
+            </a>
+            <div id="js-jump-plan-container" class="jump-plan-container" style="top: -11px;">
+                <i class="icon-font icon-plane jump-plane"></i>
+            </div>
+        </div>
+        
+        
+    </div>
+</aside>
+
+
+
+
+  
     <article id="post-Esper学习之动态添加规则" class="article article-type-post  article-index" itemscope itemprop="blogPost">
   <div class="article-inner">
     
@@ -667,6 +776,10 @@ MathJax.Hub.Queue(function() {
              
               <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color4">CEP</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color4">JVM</a>
               </li>
             
             <div class="clearfix"></div>
