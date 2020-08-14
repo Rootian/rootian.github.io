@@ -140,6 +140,120 @@
           <div id="js-content" class="content-ll">
             
   
+    <article id="post-RocketMQ实战之双机集群主从模式" class="article article-type-post  article-index" itemscope itemprop="blogPost">
+  <div class="article-inner">
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2020/08/14/RocketMQ%E5%AE%9E%E6%88%98%E4%B9%8B%E5%8F%8C%E6%9C%BA%E9%9B%86%E7%BE%A4%E4%B8%BB%E4%BB%8E%E6%A8%A1%E5%BC%8F/">RocketMQ实战之双机集群主从模式</a>
+    </h1>
+  
+
+        
+        <a href="/2020/08/14/RocketMQ%E5%AE%9E%E6%88%98%E4%B9%8B%E5%8F%8C%E6%9C%BA%E9%9B%86%E7%BE%A4%E4%B8%BB%E4%BB%8E%E6%A8%A1%E5%BC%8F/" class="archive-article-date">
+  	<time datetime="2020-08-14T09:55:05.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2020-08-14</time>
+</a>
+        
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h2 id="RocketMQ实战之双机集群主从模式"><a href="#RocketMQ实战之双机集群主从模式" class="headerlink" title="RocketMQ实战之双机集群主从模式"></a>RocketMQ实战之双机集群主从模式</h2><h3 id="测试目的"><a href="#测试目的" class="headerlink" title="测试目的"></a>测试目的</h3><p>本次测试是为了学习使用RocketMQ以及其主从模式的配置使用。在单master模式下，RocketMQ的效率较高，但如果master挂掉，会出现丢失消息的情况。因此采用双主双从的模式，机器A上配置broker a master节点以及broker b slave节点， 机器B上配置broker b master节点以及broker a slave 节点，防止maser节点失效后丢失消息。</p>
+<h3 id="环境准备"><a href="#环境准备" class="headerlink" title="环境准备"></a>环境准备</h3><p>两台服务器及一个客户端，两台服务器用于搭建RocketMQ环境，服务器用于创建producer与consumer。</p>
+<h3 id="RocketMQ配置"><a href="#RocketMQ配置" class="headerlink" title="RocketMQ配置"></a>RocketMQ配置</h3><p>分别在两台服务器中下载RocketMQ，安装完成后编写broker的配置文件：</p>
+<p>机器A master broker配置文件 broker-a.properties</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">brokerClusterName&#x3D;TestCluster</span><br><span class="line">namesrvAddr&#x3D;172.16.72.139:9876;172.16.72.138:9876</span><br><span class="line">brokerName&#x3D;broker-a</span><br><span class="line">brokerId&#x3D;0</span><br><span class="line">deleteWhen&#x3D;04</span><br><span class="line">fileReservedTime&#x3D;5</span><br><span class="line">brokerRole&#x3D;SYNC_MASTER</span><br><span class="line">flushDiskType&#x3D;SYNC_FLUSH</span><br><span class="line">diskMaxUsedSpaceRatio&#x3D;95</span><br><span class="line">brokerIP1&#x3D;172.16.72.138</span><br><span class="line">listenPort&#x3D;10911</span><br><span class="line">storePathRootDir&#x3D;&#x2F;data&#x2F;rocketmq&#x2F;store&#x2F;broker-a&#x2F;</span><br><span class="line">storePathCommitLog&#x3D;&#x2F;data&#x2F;rocketmq&#x2F;store&#x2F;broker-a&#x2F;commitlog&#x2F;</span><br><span class="line">storePathConsumerQueue&#x3D;&#x2F;data&#x2F;rocketmq&#x2F;store&#x2F;broker-a&#x2F;consumequeue&#x2F;</span><br><span class="line">autoDeleteConsumerOffset&#x3D;true</span><br></pre></td></tr></table></figure>
+
+<p>机器A slave broker 配置文件 broker-b-s.properties</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">brokerClusterName&#x3D;TestCluster</span><br><span class="line">namesrvAddr&#x3D;172.16.72.139:9876;172.16.72.138:9876</span><br><span class="line">brokerName&#x3D;broker-b</span><br><span class="line">brokerId&#x3D;1</span><br><span class="line">deleteWhen&#x3D;04</span><br><span class="line">fileReservedTime&#x3D;5</span><br><span class="line">brokerRole&#x3D;SLAVE</span><br><span class="line">flushDiskType&#x3D;SYNC_FLUSH</span><br><span class="line">diskMaxUsedSpaceRatio&#x3D;95</span><br><span class="line">brokerIP1&#x3D;172.16.72.138</span><br><span class="line">listenPort&#x3D;10111</span><br><span class="line">storePathRootDir&#x3D;&#x2F;data&#x2F;rocketmq&#x2F;store&#x2F;broker-b&#x2F;</span><br><span class="line">storePathCommitLog&#x3D;&#x2F;data&#x2F;rocketmq&#x2F;store&#x2F;broker-b&#x2F;commitlog&#x2F;</span><br><span class="line">storePathConsumerQueue&#x3D;&#x2F;data&#x2F;rocketmq&#x2F;store&#x2F;broker-b&#x2F;consumequeue&#x2F;</span><br><span class="line">autoDeleteConsumerOffset&#x3D;true</span><br></pre></td></tr></table></figure>
+
+<p>机器B master broker 配置文件 broker-b.properties</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">brokerClusterName&#x3D;TestCluster</span><br><span class="line">namesrvAddr&#x3D;172.16.72.139:9876;172.16.72.138:9876</span><br><span class="line">brokerName&#x3D;broker-b</span><br><span class="line">brokerId&#x3D;0</span><br><span class="line">deleteWhen&#x3D;04</span><br><span class="line">fileReservedTime&#x3D;5</span><br><span class="line">brokerRole&#x3D;SYNC_MASTER</span><br><span class="line">flushDiskType&#x3D;SYNC_FLUSH</span><br><span class="line">diskMaxUsedSpaceRatio&#x3D;95</span><br><span class="line">brokerIP1&#x3D;172.16.72.139</span><br><span class="line">listenPort&#x3D;10911</span><br><span class="line">storePathRootDir&#x3D;&#x2F;data&#x2F;rocketmq&#x2F;store&#x2F;broker-b&#x2F;</span><br><span class="line">storePathCommitLog&#x3D;&#x2F;data&#x2F;rocketmq&#x2F;store&#x2F;broker-b&#x2F;commitlog&#x2F;</span><br><span class="line">storePathConsumerQueue&#x3D;&#x2F;data&#x2F;rocketmq&#x2F;store&#x2F;broker-b&#x2F;consumequeue&#x2F;</span><br><span class="line">autoDeleteConsumerOffset&#x3D;true</span><br></pre></td></tr></table></figure>
+
+<p>机器B slave broker 配置文件 broker-a-s.properties</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">brokerClusterName&#x3D;TestCluster</span><br><span class="line">namesrvAddr&#x3D;172.16.72.139:9876;172.16.72.138:9876</span><br><span class="line">brokerName&#x3D;broker-a</span><br><span class="line">brokerId&#x3D;1</span><br><span class="line">deleteWhen&#x3D;04</span><br><span class="line">fileReservedTime&#x3D;5</span><br><span class="line">brokerRole&#x3D;SLAVE</span><br><span class="line">flushDiskType&#x3D;SYNC_FLUSH</span><br><span class="line">diskMaxUsedSpaceRatio&#x3D;95</span><br><span class="line">brokerIP1&#x3D;172.16.72.139</span><br><span class="line">listenPort&#x3D;10111</span><br><span class="line">storePathRootDir&#x3D;&#x2F;data&#x2F;rocketmq&#x2F;store&#x2F;broker-a&#x2F;</span><br><span class="line">storePathCommitLog&#x3D;&#x2F;data&#x2F;rocketmq&#x2F;store&#x2F;broker-a&#x2F;commitlog&#x2F;</span><br><span class="line">storePathConsumerQueue&#x3D;&#x2F;data&#x2F;rocketmq&#x2F;store&#x2F;broker-a&#x2F;consumequeue&#x2F;</span><br><span class="line">autoDeleteConsumerOffset&#x3D;true</span><br></pre></td></tr></table></figure>
+
+<p><strong>brokerClusterName</strong>，指集群名称，用于多集群环境，此处可随意设置。<br><strong>namesrvAddr</strong>，NameServer的地址，设置为这两台机器的IP地址<br><strong>brokerName</strong>，broker的唯一标志，master与slave共用一个brokerName<br><strong>brokerID</strong>，0代表master，其他代表slave<br><strong>brokerRole</strong>，slave表示是slave节点，SYNC MASTER表示是同步master节点，每当master收到消息时，会同步地将消息写入slave节点中，写入完成后返回。ASYNC MASTER表示异步master节点，收到消息后则返回成功，slave会定时请求master的数据进行同步。<br><strong>brokerIP</strong>表示broker所属ip，根据此ip查找broker<br><strong>listenPort</strong>，在同一个机器下配置多个broker需要制定不同的端口</p>
+<h3 id="RocketMQ启动"><a href="#RocketMQ启动" class="headerlink" title="RocketMQ启动"></a>RocketMQ启动</h3><h4 id="Nameserver-启动"><a href="#Nameserver-启动" class="headerlink" title="Nameserver 启动"></a>Nameserver 启动</h4><p>在两台机器上分别启动NameServer，使用命令<code>nohup sh bin/mqnamesrv &amp;</code></p>
+<h4 id="Broker-启动"><a href="#Broker-启动" class="headerlink" title="Broker 启动"></a>Broker 启动</h4><p>在两台机器上分别启动四个broker，使用命令<code>nohup sh bin/mqbroker -c broker配置文件</code></p>
+<p>全部启动完后，可以使用apache/rocketmq­ externals里提供的一个可视化页面来进行查看，如图所示，四个broker都已经正常启动</p>
+<p><img src="/images/fourBroker.png" alt="broker"></p>
+<h3 id="创建Topic"><a href="#创建Topic" class="headerlink" title="创建Topic"></a>创建Topic</h3><p>在RocketMQ-Console中创建topic，名字叫做<code>TopicTest</code></p>
+<p><img src="/images/topic.png" alt="topic"></p>
+<h3 id="编写模拟Producer与Consumer"><a href="#编写模拟Producer与Consumer" class="headerlink" title="编写模拟Producer与Consumer"></a>编写模拟Producer与Consumer</h3><p>创建一个Java项目，引入rocketMQ client依赖，编写对应的producer与consumer测试类：</p>
+<h4 id="Producer代码"><a href="#Producer代码" class="headerlink" title="Producer代码"></a>Producer代码</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">ProducerDemo</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> Exception</span>&#123;</span><br><span class="line">        DefaultMQProducer producer = <span class="keyword">new</span> DefaultMQProducer(<span class="string">"demoGroup"</span>);</span><br><span class="line">        producer.setNamesrvAddr(<span class="string">"172.16.72.139:9876;172.16.72.138:9876"</span>);</span><br><span class="line">        producer.start();</span><br><span class="line">        <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">100</span>; i++) &#123;</span><br><span class="line">            Message msg = <span class="keyword">new</span> Message(<span class="string">"TopicTest"</span>,</span><br><span class="line">                    <span class="string">"TagA"</span>,</span><br><span class="line">                    (<span class="string">"RocketMQ demo : "</span> + i).getBytes(RemotingHelper.DEFAULT_CHARSET)</span><br><span class="line">                    );</span><br><span class="line">            SendResult result = producer.send(msg);</span><br><span class="line">            System.out.println(result);</span><br><span class="line">        &#125;</span><br><span class="line">        producer.shutdown();</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="Consumer-代码"><a href="#Consumer-代码" class="headerlink" title="Consumer 代码"></a>Consumer 代码</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">ConsumerDemo</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> MQClientException </span>&#123;</span><br><span class="line">        DefaultMQPushConsumer consumer = <span class="keyword">new</span> DefaultMQPushConsumer(<span class="string">"demoGroup"</span>);</span><br><span class="line">        consumer.setNamesrvAddr(<span class="string">"172.16.72.139:9876;172.16.72.138:9876"</span>);</span><br><span class="line">        consumer.subscribe(<span class="string">"TopicTest"</span>, <span class="string">"*"</span>);</span><br><span class="line">        consumer.registerMessageListener(<span class="keyword">new</span> MessageListenerConcurrently() &#123;</span><br><span class="line">            <span class="keyword">int</span> i = <span class="number">0</span>;</span><br><span class="line">            <span class="function"><span class="keyword">public</span> ConsumeConcurrentlyStatus <span class="title">consumeMessage</span><span class="params">(List&lt;MessageExt&gt; list, ConsumeConcurrentlyContext consumeConcurrentlyContext)</span> </span>&#123;</span><br><span class="line">                System.out.println(<span class="string">"count : "</span> + i + <span class="string">"    receive new message : "</span> + list);</span><br><span class="line">                i ++;</span><br><span class="line">                <span class="keyword">return</span> ConsumeConcurrentlyStatus.CONSUME_SUCCESS;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;);</span><br><span class="line">        consumer.start();</span><br><span class="line">        System.out.println(<span class="string">"consumer started"</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>其中在Producer中模拟发送100条消息到MQ中的TopicTest ,然后Consumer中对这个topic进行订阅，当这个topic中有消息时，就会将消息拉取下来并进行输出。</p>
+<h3 id="正常情况测试结果"><a href="#正常情况测试结果" class="headerlink" title="正常情况测试结果"></a>正常情况测试结果</h3><p>当四个节点都正常运行时，先运行producer代码，向MQ中发送100条消息</p>
+<p>结果如图所示：</p>
+<p><img src="/images/%E6%AD%A3%E5%B8%B8%E5%8F%91%E9%80%81%E7%BB%93%E6%9E%9C.png" alt="p1"></p>
+<p>发送的100条消息，其中的51条存储到了broker-b中，剩下的49条存储到了broker-a中，并且master节点都将自己的数据同步到了slave节点中</p>
+<p>接着运行consumer代码进行消费，结果如下：</p>
+<p><img src="/images/%E6%AD%A3%E5%B8%B8%E6%83%85%E5%86%B5Consumer.png" alt="p2"></p>
+<p>可见消息都被正常消费，并且都是从master节点拉取消息进行消费。</p>
+<h3 id="Master节点失效时的测试结果"><a href="#Master节点失效时的测试结果" class="headerlink" title="Master节点失效时的测试结果"></a>Master节点失效时的测试结果</h3><p>首先依旧向MQ中发送100条消息</p>
+<p><img src="/images/%E8%8A%82%E7%82%B9%E5%A4%B1%E6%95%88%E6%83%85%E5%86%B5Producer.png" alt="p3"></p>
+<p>消息Produce多了100条</p>
+<p>然后将两台机器的master节点kill掉，再运行consumer代码</p>
+<p><img src="/images/%E8%8A%82%E7%82%B9%E5%A4%B1%E6%95%88%E6%83%85%E5%86%B5Consumer.png" alt="p4"></p>
+<p>可见在master失效后，consumer从slave节点中拉取了对应消息，总量还是100条，没有丢失消息。</p>
+
+      
+
+      
+    </div>
+    <div class="article-info article-info-index">
+      
+      
+	<div class="article-tag tagcloud">
+		<i class="icon-price-tags icon"></i>
+		<ul class="article-tag-list">
+			 
+        		<li class="article-tag-list-item">
+        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color4">RocketMQ</a>
+        		</li>
+      		
+		</ul>
+	</div>
+
+      
+
+      
+        <p class="article-more-link">
+          <a class="article-more-a" href="/2020/08/14/RocketMQ%E5%AE%9E%E6%88%98%E4%B9%8B%E5%8F%8C%E6%9C%BA%E9%9B%86%E7%BE%A4%E4%B8%BB%E4%BB%8E%E6%A8%A1%E5%BC%8F/">展开全文 >></a>
+        </p>
+      
+
+      
+      <div class="clearfix"></div>
+    </div>
+  </div>
+</article>
+
+<aside class="wrap-side-operation">
+    <div class="mod-side-operation">
+        
+        <div class="jump-container" id="js-jump-container" style="display:none;">
+            <a href="javascript:void(0)" class="mod-side-operation__jump-to-top">
+                <i class="icon-font icon-back"></i>
+            </a>
+            <div id="js-jump-plan-container" class="jump-plan-container" style="top: -11px;">
+                <i class="icon-font icon-plane jump-plane"></i>
+            </div>
+        </div>
+        
+        
+    </div>
+</aside>
+
+
+
+
+  
     <article id="post-JVM调优学习之调优入门" class="article article-type-post  article-index" itemscope itemprop="blogPost">
   <div class="article-inner">
     
@@ -780,6 +894,10 @@ MathJax.Hub.Queue(function() {
              
               <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color4">JVM</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color4">RocketMQ</a>
               </li>
             
             <div class="clearfix"></div>
