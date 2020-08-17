@@ -32,8 +32,9 @@
 <meta property="og:image" content="http://rootianblog.com/images/rocketmq%E6%80%A7%E8%83%BD%E6%B5%8B%E8%AF%95/producer.png">
 <meta property="og:image" content="http://rootianblog.com/images/rocketmq%E6%80%A7%E8%83%BD%E6%B5%8B%E8%AF%95/consumer.png">
 <meta property="og:image" content="http://rootianblog.com/images/rocketmq%E6%80%A7%E8%83%BD%E6%B5%8B%E8%AF%95/console.png">
+<meta property="og:image" content="http://rootianblog.com/images/rocketmq%E6%80%A7%E8%83%BD%E6%B5%8B%E8%AF%95/consoleMulti.png">
 <meta property="article:published_time" content="2020-08-17T06:27:58.000Z">
-<meta property="article:modified_time" content="2020-08-17T09:52:45.296Z">
+<meta property="article:modified_time" content="2020-08-17T10:26:21.192Z">
 <meta property="article:author" content="Rootian">
 <meta property="article:tag" content="RocketMQ">
 <meta name="twitter:card" content="summary">
@@ -309,6 +310,13 @@
 <h3 id="测试方案4-总结"><a href="#测试方案4-总结" class="headerlink" title="测试方案4 总结"></a>测试方案4 总结</h3><ul>
 <li>不知道是因为什么原因，在启动consumer后，会对于producer的吞吐量造成一定的影响，从最初的12000左右下降到9000，又逐渐稳定在10000左右。而consumer吞吐量与producer大致相同，可以及时消费到消息</li>
 <li>没有出现消费失败情况，有极少量发送失败情况</li>
+</ul>
+<h2 id="测试方案5：消费者并行测试"><a href="#测试方案5：消费者并行测试" class="headerlink" title="测试方案5：消费者并行测试"></a>测试方案5：消费者并行测试</h2><h3 id="测试目的-4"><a href="#测试目的-4" class="headerlink" title="测试目的"></a>测试目的</h3><p>通过同时启动多个消费者，来测试多个消费者拉取消息的模式以及对于MQ性能的影响</p>
+<h3 id="测试过程-4"><a href="#测试过程-4" class="headerlink" title="测试过程"></a>测试过程</h3><p>首先还是启动producer生产消息<br>然后在机器A与B上同时启动2个consumer进行消费，由于输出图较乱，就补贴图了<br>console结果如图所示：</p>
+<p><img src="/images/rocketmq%E6%80%A7%E8%83%BD%E6%B5%8B%E8%AF%95/consoleMulti.png" alt="t1"></p>
+<h3 id="测试方案5-结论"><a href="#测试方案5-结论" class="headerlink" title="测试方案5 结论"></a>测试方案5 结论</h3><ul>
+<li>多个消费者对于producer没有什么影响，但对于彼此之间的消费吞吐量有一定的影响，消费者越多，吞吐量越低</li>
+<li>consumer均从master节点拉取消息进行消费</li>
 </ul>
 
       
