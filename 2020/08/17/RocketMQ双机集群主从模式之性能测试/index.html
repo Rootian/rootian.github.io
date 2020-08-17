@@ -6,17 +6,38 @@
   <meta name="renderer" content="webkit">
   <meta http-equiv="X-UA-Compatible" content="IE=edge" >
   <link rel="dns-prefetch" href="http://rootianBlog.com">
-  <title>Archives | Rootian&#39;Blog</title>
+  <title>RocketMQ双机集群主从模式之性能测试 | Rootian&#39;Blog</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-  <meta name="description" content="武汉大学 GIS">
-<meta property="og:type" content="website">
-<meta property="og:title" content="Rootian&#39;Blog">
-<meta property="og:url" content="http://rootianblog.com/archives/index.html">
+  <meta name="description" content="RocketMQ 性能测试测试环境服务器两台，采用双机集群主从模式进行配置，机器A上配置broker-a 的master与broker-b的slave，机器B上配置broker-b的master与broker-a的slave, 两台机器的内存均为8g 测试代码采用RoccketMQ中benchmark内置提供的专门用来测试的Producer与Consumer类，代码位于org.apache.roc">
+<meta property="og:type" content="article">
+<meta property="og:title" content="RocketMQ双机集群主从模式之性能测试">
+<meta property="og:url" content="http://rootianblog.com/2020/08/17/RocketMQ%E5%8F%8C%E6%9C%BA%E9%9B%86%E7%BE%A4%E4%B8%BB%E4%BB%8E%E6%A8%A1%E5%BC%8F%E4%B9%8B%E6%80%A7%E8%83%BD%E6%B5%8B%E8%AF%95/index.html">
 <meta property="og:site_name" content="Rootian&#39;Blog">
-<meta property="og:description" content="武汉大学 GIS">
+<meta property="og:description" content="RocketMQ 性能测试测试环境服务器两台，采用双机集群主从模式进行配置，机器A上配置broker-a 的master与broker-b的slave，机器B上配置broker-b的master与broker-a的slave, 两台机器的内存均为8g 测试代码采用RoccketMQ中benchmark内置提供的专门用来测试的Producer与Consumer类，代码位于org.apache.roc">
 <meta property="og:locale" content="en_US">
+<meta property="og:image" content="http://rootianblog.com/images/rocketmq%E6%80%A7%E8%83%BD%E6%B5%8B%E8%AF%95/%E7%BA%BF%E7%A8%8B1.png">
+<meta property="og:image" content="http://rootianblog.com/images/rocketmq%E6%80%A7%E8%83%BD%E6%B5%8B%E8%AF%95/%E7%BA%BF%E7%A8%8B8.png">
+<meta property="og:image" content="http://rootianblog.com/images/rocketmq%E6%80%A7%E8%83%BD%E6%B5%8B%E8%AF%95/%E7%BA%BF%E7%A8%8B16.png">
+<meta property="og:image" content="http://rootianblog.com/images/rocketmq%E6%80%A7%E8%83%BD%E6%B5%8B%E8%AF%95/%E7%BA%BF%E7%A8%8B32.png">
+<meta property="og:image" content="http://rootianblog.com/images/rocketmq%E6%80%A7%E8%83%BD%E6%B5%8B%E8%AF%95/%E7%BA%BF%E7%A8%8B64.png">
+<meta property="og:image" content="http://rootianblog.com/images/rocketmq%E6%80%A7%E8%83%BD%E6%B5%8B%E8%AF%95/%E6%B6%88%E6%81%AF1KB.png">
+<meta property="og:image" content="http://rootianblog.com/images/rocketmq%E6%80%A7%E8%83%BD%E6%B5%8B%E8%AF%95/%E6%B6%88%E6%81%AF2KB.png">
+<meta property="og:image" content="http://rootianblog.com/images/rocketmq%E6%80%A7%E8%83%BD%E6%B5%8B%E8%AF%95/%E6%B6%88%E6%81%AF4KB.png">
+<meta property="og:image" content="http://rootianblog.com/images/rocketmq%E6%80%A7%E8%83%BD%E6%B5%8B%E8%AF%95/%E6%B6%88%E6%81%AF8KB.png">
+<meta property="og:image" content="http://rootianblog.com/images/rocketmq%E6%80%A7%E8%83%BD%E6%B5%8B%E8%AF%95/%E6%B6%88%E6%81%AF16KB.png">
+<meta property="og:image" content="http://rootianblog.com/images/rocketmq%E6%80%A7%E8%83%BD%E6%B5%8B%E8%AF%95/ss.png">
+<meta property="og:image" content="http://rootianblog.com/images/rocketmq%E6%80%A7%E8%83%BD%E6%B5%8B%E8%AF%95/sa.png">
+<meta property="og:image" content="http://rootianblog.com/images/rocketmq%E6%80%A7%E8%83%BD%E6%B5%8B%E8%AF%95/as.png">
+<meta property="og:image" content="http://rootianblog.com/images/rocketmq%E6%80%A7%E8%83%BD%E6%B5%8B%E8%AF%95/aa.png">
+<meta property="og:image" content="http://rootianblog.com/images/rocketmq%E6%80%A7%E8%83%BD%E6%B5%8B%E8%AF%95/producer.png">
+<meta property="og:image" content="http://rootianblog.com/images/rocketmq%E6%80%A7%E8%83%BD%E6%B5%8B%E8%AF%95/consumer.png">
+<meta property="og:image" content="http://rootianblog.com/images/rocketmq%E6%80%A7%E8%83%BD%E6%B5%8B%E8%AF%95/console.png">
+<meta property="article:published_time" content="2020-08-17T06:27:58.000Z">
+<meta property="article:modified_time" content="2020-08-17T09:52:45.296Z">
 <meta property="article:author" content="Rootian">
+<meta property="article:tag" content="RocketMQ">
 <meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://rootianblog.com/images/rocketmq%E6%80%A7%E8%83%BD%E6%B5%8B%E8%AF%95/%E7%BA%BF%E7%A8%8B1.png">
   
     <link rel="alternative" href="/atom.xml" title="Rootian&#39;Blog" type="application/atom+xml">
   
@@ -138,36 +159,186 @@
             <canvas data-colors="#eaeaea" data-sectionHeight="100" data-contentId="js-content" id="myCanvas1" class="anm-canvas"></canvas>
           </div>
           <div id="js-content" class="content-ll">
-            
+            <article id="post-RocketMQ双机集群主从模式之性能测试" class="article article-type-post " itemscope itemprop="blogPost">
+  <div class="article-inner">
+    
+      <header class="article-header">
+        
   
+    <h1 class="article-title" itemprop="name">
+      RocketMQ双机集群主从模式之性能测试
+    </h1>
   
-    
-    
-      
-      
-      <section class="archives-wrap">
-        <div class="archive-year-wrap">
-          <a href="/archives/2020" class="archive-year">2020</a>
-        </div>
-        <div class="archives">
-    
-    <article class="archive-article archive-type-post">
-  <div class="archive-article-inner">
-    <header class="archive-article-header">
-      	<div class="article-meta">
-	      	<a href="/2020/08/17/RocketMQ%E5%8F%8C%E6%9C%BA%E9%9B%86%E7%BE%A4%E4%B8%BB%E4%BB%8E%E6%A8%A1%E5%BC%8F%E4%B9%8B%E6%80%A7%E8%83%BD%E6%B5%8B%E8%AF%95/" class="archive-article-date">
+
+        
+        <a href="/2020/08/17/RocketMQ%E5%8F%8C%E6%9C%BA%E9%9B%86%E7%BE%A4%E4%B8%BB%E4%BB%8E%E6%A8%A1%E5%BC%8F%E4%B9%8B%E6%80%A7%E8%83%BD%E6%B5%8B%E8%AF%95/" class="archive-article-date">
   	<time datetime="2020-08-17T06:27:58.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2020-08-17</time>
 </a>
-        </div>
-    	 
-  
-    <h1 itemprop="name">
-      <a class="archive-article-title" href="/2020/08/17/RocketMQ%E5%8F%8C%E6%9C%BA%E9%9B%86%E7%BE%A4%E4%B8%BB%E4%BB%8E%E6%A8%A1%E5%BC%8F%E4%B9%8B%E6%80%A7%E8%83%BD%E6%B5%8B%E8%AF%95/">RocketMQ双机集群主从模式之性能测试</a>
-    </h1>
-  
+        
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="RocketMQ-性能测试"><a href="#RocketMQ-性能测试" class="headerlink" title="RocketMQ 性能测试"></a>RocketMQ 性能测试</h1><h2 id="测试环境"><a href="#测试环境" class="headerlink" title="测试环境"></a>测试环境</h2><p>服务器两台，采用双机集群主从模式进行配置，机器A上配置broker-a 的master与broker-b的slave，机器B上配置broker-b的master与broker-a的slave, 两台机器的内存均为8g</p>
+<h2 id="测试代码"><a href="#测试代码" class="headerlink" title="测试代码"></a>测试代码</h2><p>采用RoccketMQ中benchmark内置提供的专门用来测试的Producer与Consumer类，代码位于org.apache.rocketmq.example包下。Producer的功能就是根据输入的参数不断一直向MQ中发送消息，并计算对应的一些性能参数，如TPS、RT等，Consumer则消费消息。</p>
+<h2 id="测试方案1：并发测试"><a href="#测试方案1：并发测试" class="headerlink" title="测试方案1：并发测试"></a>测试方案1：并发测试</h2><h3 id="测试目的"><a href="#测试目的" class="headerlink" title="测试目的"></a>测试目的</h3><p>通过调整并发线程数来测试线程数对于MQ的影响, 消息大小固定为1kb</p>
+<h3 id="测试过程"><a href="#测试过程" class="headerlink" title="测试过程"></a>测试过程</h3><h4 id="线程数：1"><a href="#线程数：1" class="headerlink" title="线程数：1"></a>线程数：1</h4><p>执行命令<code>sh producer.sh --w=1 --s=1024</code><br>执行结果如下：</p>
+<p><img src="/images/rocketmq%E6%80%A7%E8%83%BD%E6%B5%8B%E8%AF%95/%E7%BA%BF%E7%A8%8B1.png" alt="t1"></p>
+<ul>
+<li>吞吐量：2000左右</li>
+<li>平均响应时间：0.5ms左右</li>
+<li>没有出现发送失败的情况</li>
+</ul>
+<h4 id="线程数：8"><a href="#线程数：8" class="headerlink" title="线程数：8"></a>线程数：8</h4><p>执行命令<code>sh producer.sh --w=8 --s=1024</code><br>执行结果如下：</p>
+<p><img src="/images/rocketmq%E6%80%A7%E8%83%BD%E6%B5%8B%E8%AF%95/%E7%BA%BF%E7%A8%8B8.png" alt="t1"></p>
+<ul>
+<li>吞吐量：9000左右</li>
+<li>平均响应时间：0.9ms左右</li>
+<li>没有出现发送失败情况</li>
+</ul>
+<h4 id="线程数：16"><a href="#线程数：16" class="headerlink" title="线程数：16"></a>线程数：16</h4><p>执行命令<code>sh producer.sh --w=16 --s=1024</code><br>执行结果如下：</p>
+<p><img src="/images/rocketmq%E6%80%A7%E8%83%BD%E6%B5%8B%E8%AF%95/%E7%BA%BF%E7%A8%8B16.png" alt="t1"></p>
+<ul>
+<li>吞吐量：12700左右</li>
+<li>平均响应时间：1.25ms左右</li>
+<li>没有出现发送失败情况</li>
+</ul>
+<h4 id="线程数：32"><a href="#线程数：32" class="headerlink" title="线程数：32"></a>线程数：32</h4><p>执行命令<code>sh producer.sh --w=32 --s=1024</code><br>执行结果如下：</p>
+<p><img src="/images/rocketmq%E6%80%A7%E8%83%BD%E6%B5%8B%E8%AF%95/%E7%BA%BF%E7%A8%8B32.png" alt="t1"></p>
+<ul>
+<li>吞吐量：19000左右，有一定波动</li>
+<li>平均响应时间：1.6-1.8ms，有一定波动</li>
+<li>出现极少量发送失败情况</li>
+</ul>
+<h4 id="线程数：64"><a href="#线程数：64" class="headerlink" title="线程数：64"></a>线程数：64</h4><p>执行命令<code>sh producer.sh --w=64 --s=1024</code><br>执行结果如下：</p>
+<p><img src="/images/rocketmq%E6%80%A7%E8%83%BD%E6%B5%8B%E8%AF%95/%E7%BA%BF%E7%A8%8B64.png" alt="t1"></p>
+<ul>
+<li>吞吐量：22000-26000，波动较大</li>
+<li>平均响应时间：2.4-2.7ms，有一定波动</li>
+<li>出现极少量发送失败情况</li>
+</ul>
+<h3 id="测试方案1-总结"><a href="#测试方案1-总结" class="headerlink" title="测试方案1 总结"></a>测试方案1 总结</h3><ul>
+<li>吞吐量随着并发线程数的增加逐步增加，但增速在线程数达到30左右时达到最高点，之后随着线程增多，吞吐量的增长速度开始下降，预计会逐渐达到饱和点。且随着并发线程数的增加，吞吐量的稳定性开始下降。</li>
+<li>平均响应时间随着并发线程数的增加逐步增加，具有和吞吐量类似的增长特性。</li>
+<li>线程数较少时，没有出现发送失败的情况，随着线程数增加，发送失败的情况会逐步增加。</li>
+</ul>
+<h2 id="测试方案2：消息大小测试"><a href="#测试方案2：消息大小测试" class="headerlink" title="测试方案2：消息大小测试"></a>测试方案2：消息大小测试</h2><h3 id="测试目的-1"><a href="#测试目的-1" class="headerlink" title="测试目的"></a>测试目的</h3><p>通过改变发送消息的大小，固定线程数为16，来测试消息大小对于MQ性能的影响</p>
+<h3 id="测试过程-1"><a href="#测试过程-1" class="headerlink" title="测试过程"></a>测试过程</h3><h4 id="消息大小：1KB"><a href="#消息大小：1KB" class="headerlink" title="消息大小：1KB"></a>消息大小：1KB</h4><p>执行命令<code>sh producer.sh --w=16 --s=1024</code><br>执行结果如下：</p>
+<p><img src="/images/rocketmq%E6%80%A7%E8%83%BD%E6%B5%8B%E8%AF%95/%E6%B6%88%E6%81%AF1KB.png" alt="t1"></p>
+<ul>
+<li>吞吐量：12500左右</li>
+<li>响应时间：1.25ms左右</li>
+<li>没有出现发送失败</li>
+</ul>
+<h4 id="消息大小：2KB"><a href="#消息大小：2KB" class="headerlink" title="消息大小：2KB"></a>消息大小：2KB</h4><p>执行命令<code>sh producer.sh --w=16 --s=2048</code><br>执行结果如下：</p>
+<p><img src="/images/rocketmq%E6%80%A7%E8%83%BD%E6%B5%8B%E8%AF%95/%E6%B6%88%E6%81%AF2KB.png" alt="t1"></p>
+<ul>
+<li>吞吐量：11800左右</li>
+<li>响应时间：1.3ms左右</li>
+<li>没有出现发送失败</li>
+</ul>
+<h4 id="消息大小：4KB"><a href="#消息大小：4KB" class="headerlink" title="消息大小：4KB"></a>消息大小：4KB</h4><p>执行命令<code>sh producer.sh --w=16 --s=4096</code><br>执行结果如下：</p>
+<p><img src="/images/rocketmq%E6%80%A7%E8%83%BD%E6%B5%8B%E8%AF%95/%E6%B6%88%E6%81%AF4KB.png" alt="t1"></p>
+<ul>
+<li>吞吐量：10500左右</li>
+<li>响应时间：1.5ms左右</li>
+<li>没有出现发送失败情况</li>
+</ul>
+<h4 id="消息大小：8KB"><a href="#消息大小：8KB" class="headerlink" title="消息大小：8KB"></a>消息大小：8KB</h4><p>执行命令<code>sh producer.sh --w=16 --s=8192</code><br>执行结果如下：</p>
+<p><img src="/images/rocketmq%E6%80%A7%E8%83%BD%E6%B5%8B%E8%AF%95/%E6%B6%88%E6%81%AF8KB.png" alt="t1"></p>
+<ul>
+<li>吞吐量：9000左右</li>
+<li>响应时间：1.7ms左右</li>
+<li>没有出现发送失败情况</li>
+</ul>
+<h4 id="消息大小：16KB"><a href="#消息大小：16KB" class="headerlink" title="消息大小：16KB"></a>消息大小：16KB</h4><p>执行命令<code>sh producer.sh --w=16 --s=16384</code><br>执行结果如下：</p>
+<p><img src="/images/rocketmq%E6%80%A7%E8%83%BD%E6%B5%8B%E8%AF%95/%E6%B6%88%E6%81%AF16KB.png" alt="t1"></p>
+<ul>
+<li>吞吐量：7200左右</li>
+<li>响应时间：2.1ms左右</li>
+<li>没有出现发送失败情况</li>
+</ul>
+<h3 id="测试方案2-总结"><a href="#测试方案2-总结" class="headerlink" title="测试方案2 总结"></a>测试方案2 总结</h3><ul>
+<li>对于KB级别的消息，随着消息大小的指数级增长，吞吐量呈现稳定的线性减少，且变化较小，对MQ性能影响不大</li>
+<li>响应时间与吞吐量的变化趋势大致类似，随着消息大小增加，响应时间也有少量增加</li>
+<li>消息大小对于发送成功与否基本没有影响</li>
+</ul>
+<h2 id="测试方案3：复制与刷盘的模式选择"><a href="#测试方案3：复制与刷盘的模式选择" class="headerlink" title="测试方案3：复制与刷盘的模式选择"></a>测试方案3：复制与刷盘的模式选择</h2><h3 id="测试目的-2"><a href="#测试目的-2" class="headerlink" title="测试目的"></a>测试目的</h3><p>目前共有四种模式供选择：同步双写-同步刷盘，同步双写-异步刷盘，异步复制-同步刷盘与异步复制-异步刷盘，通过模式的切换来对比四种模式的性能指标。采用16线程8KB消息。</p>
+<h3 id="测试过程-2"><a href="#测试过程-2" class="headerlink" title="测试过程"></a>测试过程</h3><h4 id="同步双写-同步刷盘"><a href="#同步双写-同步刷盘" class="headerlink" title="同步双写+同步刷盘"></a>同步双写+同步刷盘</h4><p>配置broker文件SYNC_MASTER与SYNC_FLUSH，测试结果如下：</p>
+<p><img src="/images/rocketmq%E6%80%A7%E8%83%BD%E6%B5%8B%E8%AF%95/ss.png" alt="t1"></p>
+<ul>
+<li>吞吐量：9000左右</li>
+<li>平均响应时间：1.7ms左右</li>
+<li>未出现发送失败情况</li>
+</ul>
+<h4 id="同步双写-异步刷盘"><a href="#同步双写-异步刷盘" class="headerlink" title="同步双写+异步刷盘"></a>同步双写+异步刷盘</h4><p>配置broker文件SYNC_MASTER与ASYNC_FLUSH，测试结果如下：</p>
+<p><img src="/images/rocketmq%E6%80%A7%E8%83%BD%E6%B5%8B%E8%AF%95/sa.png" alt="t1"></p>
+<ul>
+<li>吞吐量：9500左右</li>
+<li>平均响应时间：1.63ms左右</li>
+<li>出现极少量发送失败情况</li>
+</ul>
+<h4 id="异步复制-同步刷盘"><a href="#异步复制-同步刷盘" class="headerlink" title="异步复制+同步刷盘"></a>异步复制+同步刷盘</h4><p>配置broker文件ASYNC_MASTER与SYNC_FLUSH，测试结果如下：</p>
+<p><img src="/images/rocketmq%E6%80%A7%E8%83%BD%E6%B5%8B%E8%AF%95/as.png" alt="t1"></p>
+<ul>
+<li>吞吐量：9300左右</li>
+<li>平均响应时间：1.65ms左右</li>
+<li>出现极少量发送失败情况</li>
+</ul>
+<h4 id="异步复制-异步刷盘"><a href="#异步复制-异步刷盘" class="headerlink" title="异步复制+异步刷盘"></a>异步复制+异步刷盘</h4><p>配置broker文件ASYNC_MASTER与ASYNC_FLUSH，测试结果如下：</p>
+<p><img src="/images/rocketmq%E6%80%A7%E8%83%BD%E6%B5%8B%E8%AF%95/aa.png" alt="t1"></p>
+<ul>
+<li>吞吐量：12500左右</li>
+<li>平均响应时间：1.2ms左右</li>
+<li>出现极少量发送失败情况</li>
+</ul>
+<h3 id="测试方案3-总结"><a href="#测试方案3-总结" class="headerlink" title="测试方案3 总结"></a>测试方案3 总结</h3><ul>
+<li>同步双写+同步刷盘的吞吐量最低，约9000，异步复制+异步刷盘的吞吐量最高，且相较于其他三种模式有显著提升，约12000</li>
+<li>响应时间与吞吐量呈现类似变化趋势</li>
+<li>同步双写+同步刷盘没有出现发送失败情况，其他三种均出现了少量发送失败情况</li>
+<li>因此，在没有严格要求发送全部成功的场景下，选择异步刷盘及异步复制是较优的方案</li>
+</ul>
+<h2 id="测试方案4：消费者测试"><a href="#测试方案4：消费者测试" class="headerlink" title="测试方案4：消费者测试"></a>测试方案4：消费者测试</h2><h3 id="测试目的-3"><a href="#测试目的-3" class="headerlink" title="测试目的"></a>测试目的</h3><p>基于之前的测试，选择异步复制+异步刷盘的方式，并使用Producer按照16线程8KB消息的参数进行发送，同时启动Consumer进行消费，来测试消费者的性能。</p>
+<h3 id="测试过程-3"><a href="#测试过程-3" class="headerlink" title="测试过程"></a>测试过程</h3><p>首先在机器A启动Producer，持续生产消息，结果如图所示：</p>
+<p><img src="/images/rocketmq%E6%80%A7%E8%83%BD%E6%B5%8B%E8%AF%95/producer.png" alt="t1"></p>
+<p>接着在机器B启动Consumer，对消息进行消费，启动时有些许波动，趋于稳定后测试结果如图所示：</p>
+<p><img src="/images/rocketmq%E6%80%A7%E8%83%BD%E6%B5%8B%E8%AF%95/consumer.png" alt="t1"></p>
+<p>管理console界面如图：</p>
+<p><img src="/images/rocketmq%E6%80%A7%E8%83%BD%E6%B5%8B%E8%AF%95/console.png" alt="t1"></p>
+<p>可见在master节点正常运作时，consumer均从master节点拉取消息进行消费</p>
+<h3 id="测试方案4-总结"><a href="#测试方案4-总结" class="headerlink" title="测试方案4 总结"></a>测试方案4 总结</h3><ul>
+<li>不知道是因为什么原因，在启动consumer后，会对于producer的吞吐量造成一定的影响，从最初的12000左右下降到9000，又逐渐稳定在10000左右。而consumer吞吐量与producer大致相同，可以及时消费到消息</li>
+<li>没有出现消费失败情况，有极少量发送失败情况</li>
+</ul>
 
-        <div class="article-info info-on-right">
-          
+      
+
+      
+        <div class="page-reward">
+          <a href="javascript:;" class="page-reward-btn tooltip-top">
+            <div class="tooltip tooltip-east">
+            <span class="tooltip-item">
+              赏
+            </span>
+            <span class="tooltip-content">
+              <span class="tooltip-text">
+                <span class="tooltip-inner">
+                  <p class="reward-p"><i class="icon icon-quo-left"></i>谢谢你请我吃糖果<i class="icon icon-quo-right"></i></p>
+                  <div class="reward-box">
+                    
+                    
+                  </div>
+                </span>
+              </span>
+            </span>
+          </div>
+          </a>
+        </div>
+      
+    </div>
+    <div class="article-info article-info-index">
+      
+      
 	<div class="article-tag tagcloud">
 		<i class="icon-price-tags icon"></i>
 		<ul class="article-tag-list">
@@ -179,276 +350,106 @@
 		</ul>
 	</div>
 
-          
-
-        </div>
-        <div class="clearfix"></div>
-    </header>
-  </div>
-</article>
-  
-    
-    
-    <article class="archive-article archive-type-post">
-  <div class="archive-article-inner">
-    <header class="archive-article-header">
-      	<div class="article-meta">
-	      	<a href="/2020/08/14/RocketMQ%E5%AE%9E%E6%88%98%E4%B9%8B%E5%8F%8C%E6%9C%BA%E9%9B%86%E7%BE%A4%E4%B8%BB%E4%BB%8E%E6%A8%A1%E5%BC%8F/" class="archive-article-date">
-  	<time datetime="2020-08-14T09:55:05.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2020-08-14</time>
-</a>
-        </div>
-    	 
-  
-    <h1 itemprop="name">
-      <a class="archive-article-title" href="/2020/08/14/RocketMQ%E5%AE%9E%E6%88%98%E4%B9%8B%E5%8F%8C%E6%9C%BA%E9%9B%86%E7%BE%A4%E4%B8%BB%E4%BB%8E%E6%A8%A1%E5%BC%8F/">RocketMQ实战之双机集群主从模式</a>
-    </h1>
-  
-
-        <div class="article-info info-on-right">
-          
-	<div class="article-tag tagcloud">
-		<i class="icon-price-tags icon"></i>
-		<ul class="article-tag-list">
-			 
-        		<li class="article-tag-list-item">
-        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color4">RocketMQ</a>
-        		</li>
-      		
-		</ul>
-	</div>
-
-          
-
-        </div>
-        <div class="clearfix"></div>
-    </header>
-  </div>
-</article>
-  
-    
-    
-    <article class="archive-article archive-type-post">
-  <div class="archive-article-inner">
-    <header class="archive-article-header">
-      	<div class="article-meta">
-	      	<a href="/2020/08/04/JVM%E8%B0%83%E4%BC%98%E5%AD%A6%E4%B9%A0%E4%B9%8B%E8%B0%83%E4%BC%98%E5%85%A5%E9%97%A8/" class="archive-article-date">
-  	<time datetime="2020-08-04T05:06:52.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2020-08-04</time>
-</a>
-        </div>
-    	 
-  
-    <h1 itemprop="name">
-      <a class="archive-article-title" href="/2020/08/04/JVM%E8%B0%83%E4%BC%98%E5%AD%A6%E4%B9%A0%E4%B9%8B%E8%B0%83%E4%BC%98%E5%85%A5%E9%97%A8/">JVM调优学习之调优入门</a>
-    </h1>
-  
-
-        <div class="article-info info-on-right">
-          
-	<div class="article-tag tagcloud">
-		<i class="icon-price-tags icon"></i>
-		<ul class="article-tag-list">
-			 
-        		<li class="article-tag-list-item">
-        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color4">JVM</a>
-        		</li>
-      		
-		</ul>
-	</div>
-
-          
-
-        </div>
-        <div class="clearfix"></div>
-    </header>
-  </div>
-</article>
-  
-    
-    
-    <article class="archive-article archive-type-post">
-  <div class="archive-article-inner">
-    <header class="archive-article-header">
-      	<div class="article-meta">
-	      	<a href="/2020/07/21/Esper%E5%AD%A6%E4%B9%A0%E4%B9%8B%E5%8A%A8%E6%80%81%E6%B7%BB%E5%8A%A0%E8%A7%84%E5%88%99/" class="archive-article-date">
-  	<time datetime="2020-07-21T07:07:37.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2020-07-21</time>
-</a>
-        </div>
-    	 
-  
-    <h1 itemprop="name">
-      <a class="archive-article-title" href="/2020/07/21/Esper%E5%AD%A6%E4%B9%A0%E4%B9%8B%E5%8A%A8%E6%80%81%E6%B7%BB%E5%8A%A0%E8%A7%84%E5%88%99/">Esper学习之动态添加规则</a>
-    </h1>
-  
-
-        <div class="article-info info-on-right">
-          
-	<div class="article-tag tagcloud">
-		<i class="icon-price-tags icon"></i>
-		<ul class="article-tag-list">
-			 
-        		<li class="article-tag-list-item">
-        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color1">Esper</a>
-        		</li>
-      		 
-        		<li class="article-tag-list-item">
-        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color4">CEP</a>
-        		</li>
-      		
-		</ul>
-	</div>
-
-          
-
-        </div>
-        <div class="clearfix"></div>
-    </header>
-  </div>
-</article>
-  
-    
-    
-    <article class="archive-article archive-type-post">
-  <div class="archive-article-inner">
-    <header class="archive-article-header">
-      	<div class="article-meta">
-	      	<a href="/2020/07/21/Esper%E5%AD%A6%E4%B9%A0%E4%B9%8B%E7%AE%80%E5%8D%95%E5%85%A5%E9%97%A8/" class="archive-article-date">
-  	<time datetime="2020-07-21T03:24:41.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2020-07-21</time>
-</a>
-        </div>
-    	 
-  
-    <h1 itemprop="name">
-      <a class="archive-article-title" href="/2020/07/21/Esper%E5%AD%A6%E4%B9%A0%E4%B9%8B%E7%AE%80%E5%8D%95%E5%85%A5%E9%97%A8/">Esper学习之简单入门</a>
-    </h1>
-  
-
-        <div class="article-info info-on-right">
-          
-	<div class="article-tag tagcloud">
-		<i class="icon-price-tags icon"></i>
-		<ul class="article-tag-list">
-			 
-        		<li class="article-tag-list-item">
-        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color1">Esper</a>
-        		</li>
-      		 
-        		<li class="article-tag-list-item">
-        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color4">CEP</a>
-        		</li>
-      		
-		</ul>
-	</div>
-
-          
-
-        </div>
-        <div class="clearfix"></div>
-    </header>
-  </div>
-</article>
-  
-    
-    
-    <article class="archive-article archive-type-post">
-  <div class="archive-article-inner">
-    <header class="archive-article-header">
-      	<div class="article-meta">
-	      	<a href="/2020/07/10/%E6%8B%89%E5%8F%96Elasticsearch%E6%97%A5%E5%BF%97%E6%95%B0%E6%8D%AE%E5%B9%B6%E5%86%99%E5%85%A5excel%E6%96%87%E4%BB%B6%E6%B5%81/" class="archive-article-date">
-  	<time datetime="2020-07-10T08:18:07.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2020-07-10</time>
-</a>
-        </div>
-    	 
-  
-    <h1 itemprop="name">
-      <a class="archive-article-title" href="/2020/07/10/%E6%8B%89%E5%8F%96Elasticsearch%E6%97%A5%E5%BF%97%E6%95%B0%E6%8D%AE%E5%B9%B6%E5%86%99%E5%85%A5excel%E6%96%87%E4%BB%B6%E6%B5%81/">滚动查询Elasticsearch日志数据并写入CSV文件流</a>
-    </h1>
-  
-
-        <div class="article-info info-on-right">
-          
-	<div class="article-tag tagcloud">
-		<i class="icon-price-tags icon"></i>
-		<ul class="article-tag-list">
-			 
-        		<li class="article-tag-list-item">
-        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color4">elasticsearch</a>
-        		</li>
-      		
-		</ul>
-	</div>
-
-          
-
-        </div>
-        <div class="clearfix"></div>
-    </header>
-  </div>
-</article>
-  
-    
-    
       
-        </div></section>
+
       
+
       
-      <section class="archives-wrap">
-        <div class="archive-year-wrap">
-          <a href="/archives/2019" class="archive-year">2019</a>
+        
+<div class="share-btn share-icons tooltip-left">
+  <div class="tooltip tooltip-east">
+    <span class="tooltip-item">
+      <a href="javascript:;" class="share-sns share-outer">
+        <i class="icon icon-share"></i>
+      </a>
+    </span>
+    <span class="tooltip-content">
+      <div class="share-wrap">
+        <div class="share-icons">
+          <a class="weibo share-sns" href="javascript:;" data-type="weibo">
+            <i class="icon icon-weibo"></i>
+          </a>
+          <a class="weixin share-sns wxFab" href="javascript:;" data-type="weixin">
+            <i class="icon icon-weixin"></i>
+          </a>
+          <a class="qq share-sns" href="javascript:;" data-type="qq">
+            <i class="icon icon-qq"></i>
+          </a>
+          <a class="douban share-sns" href="javascript:;" data-type="douban">
+            <i class="icon icon-douban"></i>
+          </a>
+          <a class="qzone share-sns" href="javascript:;" data-type="qzone">
+            <i class="icon icon-qzone"></i>
+          </a>
+          <a class="facebook share-sns" href="javascript:;" data-type="facebook">
+            <i class="icon icon-facebook"></i>
+          </a>
+          <a class="twitter share-sns" href="javascript:;" data-type="twitter">
+            <i class="icon icon-twitter"></i>
+          </a>
+          <a class="google share-sns" href="javascript:;" data-type="google">
+            <i class="icon icon-google"></i>
+          </a>
         </div>
-        <div class="archives">
-    
-    <article class="archive-article archive-type-post">
-  <div class="archive-article-inner">
-    <header class="archive-article-header">
-      	<div class="article-meta">
-	      	<a href="/2019/04/16/ParallelCPIndex/" class="archive-article-date">
-  	<time datetime="2019-04-16T03:27:44.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2019-04-16</time>
-</a>
-        </div>
-    	 
-  
-    <h1 itemprop="name">
-      <a class="archive-article-title" href="/2019/04/16/ParallelCPIndex/">基于Spark并行加速的CP index聚类评价算法</a>
-    </h1>
-  
+      </div>
+    </span>
+  </div>
+</div>
 
-        <div class="article-info info-on-right">
-          
-	<div class="article-tag tagcloud">
-		<i class="icon-price-tags icon"></i>
-		<ul class="article-tag-list">
-			 
-        		<li class="article-tag-list-item">
-        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color1">spark</a>
-        		</li>
-      		
-		</ul>
-	</div>
+<div class="page-modal wx-share js-wx-box">
+    <a class="close js-modal-close" href="javascript:;"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <div class="wx-qrcode">
+      <img src="//pan.baidu.com/share/qrcode?url=http://rootianblog.com/2020/08/17/RocketMQ%E5%8F%8C%E6%9C%BA%E9%9B%86%E7%BE%A4%E4%B8%BB%E4%BB%8E%E6%A8%A1%E5%BC%8F%E4%B9%8B%E6%80%A7%E8%83%BD%E6%B5%8B%E8%AF%95/" alt="微信分享二维码">
+    </div>
+</div>
 
-          
-	<div class="article-category tagcloud">
-		<i class="icon-book icon"></i>
-		<ul class="article-tag-list">
-			 
-        		<li class="article-tag-list-item">
-        			<a href="/categories/Parallel-computing//" class="article-tag-list-link color4">Parallel computing</a>
-        		</li>
-      		
-		</ul>
-	</div>
-
-
-        </div>
-        <div class="clearfix"></div>
-    </header>
+<div class="mask js-mask"></div>
+      
+      <div class="clearfix"></div>
+    </div>
   </div>
 </article>
+
+  
+<nav id="article-nav">
   
   
-    </div></section>
+    <a href="/2020/08/14/RocketMQ%E5%AE%9E%E6%88%98%E4%B9%8B%E5%8F%8C%E6%9C%BA%E9%9B%86%E7%BE%A4%E4%B8%BB%E4%BB%8E%E6%A8%A1%E5%BC%8F/" id="article-nav-older" class="article-nav-link-wrap">
+      <div class="article-nav-title">RocketMQ实战之双机集群主从模式</div>
+      <i class="icon-circle-right"></i>
+    </a>
+  
+</nav>
+
+
+<aside class="wrap-side-operation">
+    <div class="mod-side-operation">
+        
+        <div class="jump-container" id="js-jump-container" style="display:none;">
+            <a href="javascript:void(0)" class="mod-side-operation__jump-to-top">
+                <i class="icon-font icon-back"></i>
+            </a>
+            <div id="js-jump-plan-container" class="jump-plan-container" style="top: -11px;">
+                <i class="icon-font icon-plane jump-plane"></i>
+            </div>
+        </div>
+        
+        
+    </div>
+</aside>
+
+
+
+  
+  
   
 
-    
+  
+
+  
+
+  
 
 
           </div>
@@ -471,8 +472,8 @@
 	var yiliaConfig = {
 		mathjax: true,
 		isHome: false,
-		isPost: false,
-		isArchive: true,
+		isPost: true,
+		isArchive: false,
 		isTag: false,
 		isCategory: false,
 		open_in_new: false,
