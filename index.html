@@ -140,6 +140,211 @@
           <div id="js-content" class="content-ll">
             
   
+    <article id="post-记一次AviatorScript的坑" class="article article-type-post  article-index" itemscope itemprop="blogPost">
+  <div class="article-inner">
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2020/11/20/%E8%AE%B0%E4%B8%80%E6%AC%A1AviatorScript%E7%9A%84%E5%9D%91/">记一次AviatorScript的坑</a>
+    </h1>
+  
+
+        
+        <a href="/2020/11/20/%E8%AE%B0%E4%B8%80%E6%AC%A1AviatorScript%E7%9A%84%E5%9D%91/" class="archive-article-date">
+  	<time datetime="2020-11-20T09:48:13.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2020-11-20</time>
+</a>
+        
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="AviatorScript-反斜杠转义问题"><a href="#AviatorScript-反斜杠转义问题" class="headerlink" title="AviatorScript 反斜杠转义问题"></a>AviatorScript 反斜杠转义问题</h1><h2 id="事发原因"><a href="#事发原因" class="headerlink" title="事发原因"></a>事发原因</h2><p>本次事件源自于在开发一个可以上传图片的富文本框的工作。与一般的输入文本框相比，富文本框中经常会输入各种符号，如回车符、双引号、反斜杠等。而前端输入的内容在后端会作为一个完整的json字符串，并使用Aviator执行其逻辑，但前端输入的<em><strong>双引号</strong>_，在我们前端的逻辑中，要包装两层Json，因此会被**_转义两次</em>**。</p>
+<p>举个例子：<br>前端文本框输入的内容：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">testtest<span class="string">"ggg"</span></span><br></pre></td></tr></table></figure>
+<p>在后端读取时会变成：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">\<span class="string">"content\":\"&lt;p&gt;testtest\\\"ggg\\\"&lt;/p&gt;\"</span></span><br></pre></td></tr></table></figure>
+
+<p>这是因为，<code>&quot;</code>经过一次转义，会变成<code>\&quot;</code>,经过两次转义，会变成<code>\\\&quot;</code></p>
+<p>而这样的字符串，Aviator在执行时，会报错：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">com.googlecode.aviator.exception.CompileExpressionErrorException: Unsupported escape character: \<span class="string">"</span></span><br></pre></td></tr></table></figure>
+<h2 id="试错过程"><a href="#试错过程" class="headerlink" title="试错过程"></a>试错过程</h2><p>为了解决这一问题，我测试了各种各样的输入，发现<code>\\\&quot;</code>这个会报错，而<code>\&quot;</code>的输入不会报错，于是我最开始致力于将<code>\\\&quot;</code>替换为<code>\&quot;</code>,然后，替换完成后代码其他的执行逻辑却出现了错误：Json无法解析。</p>
+<p>研究了原因，发现，这是因为我们在将<code>\\\&quot;</code>替换为<code>\&quot;</code>的时候，Aviator会将其转义为<code>&quot;</code>, 这样可以通过Aviator的执行，因为字符串没有格式问题了。然而经过这样改动的原输入Json变成了什么样子呢？</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">\<span class="string">"content\":\"&lt;p&gt;testtest\"ggg\"&lt;/p&gt;\"</span></span><br></pre></td></tr></table></figure>
+
+<p>而这个经过转义后会变成:</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">"content"</span>:<span class="string">"&lt;p&gt;testtest"</span>ggg<span class="string">"&lt;/p&gt;"</span></span><br></pre></td></tr></table></figure>
+
+<p>这很明显不是一个Json，因为双引号把content 所对应的值给切分开了。</p>
+<p>因此这个方案不可行</p>
+<p>后来又采用 <code>StringEscapeUtils.unescapeJava()</code>函数，这个函数可以忽略一些转义字符，但还是会出现上一个方案的问题，可以通过Aviator的执行，但结果会被改变。</p>
+<h2 id="最终原因"><a href="#最终原因" class="headerlink" title="最终原因"></a>最终原因</h2><p>经过一番研究，最终我在Aviator的github issues里看到了一个issue：</p>
+<p><img src="images/aviatorBug.png" alt=""></p>
+<p>Aviator本身对于反斜杠转义符的识别是和我们正常理解的不一样的。从简单的例子开始：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">"\\\""</span></span><br></pre></td></tr></table></figure>
+<p>有这样一个字符串，直接执行，会报错<code>\&quot;</code>不支持，这是因为上面的表达式在经过第一次转义后，会变成<code>\&quot;</code>，而Aviator本身不会再做进一步转义，因此它识别不了这个符号。于是最初我们的做法是去掉前面的两个<code>\</code>，也就是只剩下一个<code>\&quot;</code>，这个做法确实规避了这个问题，但也改变了原本输入的结构，是不可行的。</p>
+<p>相反，仔细去理解Issue里作者提出的正确写法</p>
+<p>在我们使用Java String 的 <code>replaceAll()</code>函数时，如果想要将字符串的一个反斜杠替换为空，需要这样写:</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">replaceAll(<span class="string">"\\\\"</span>, <span class="string">""</span>)</span><br></pre></td></tr></table></figure>
+<p>这是因为，四个反斜杠经过正则的转义，会变成<code>\\</code>,再经过String的转义，会变成<code>\</code>。而Aviator此处的逻辑便是类似</p>
+<p>对于<code>\\\&quot;</code>, 正常情况的转义应该是，经过两次转义，变为<code>&quot;</code>，而对于Aviator来说，第一次解译得到<code>\&quot;</code>，而它试图继续解译<code>\</code>，无法解译，便会报错。</p>
+<p>而考虑作者Issue中提到的做法，如果将<code>\\\&quot;</code>补充至<code>\\\\\&quot;</code>，在经过Aviator的解析时，前四个<code>\</code>会被转义成一个<code>\</code>，最后的<code>\&quot;</code>会被转义为<code>&quot;</code>。合起来就是<code>\&quot;</code>，在执行结束后，经过String的反转义，会变成 <code>\\\&quot;</code>，也就是最初的输入字符串。</p>
+<p>那么，如何通过replaceAll来实现这个过程，从而可以进行通用的替换呢？</p>
+<p>将<code>\\\&quot;</code>替换为<code>\\\\\&quot;</code>，最简单的办法就是：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">replaceAll(<span class="string">"\\\\"</span>, <span class="string">"\\\\\\\\"</span>)</span><br></pre></td></tr></table></figure>
+<p>将字符串中的单斜杠替换为双斜杠, 因为原先的<code>\\\&quot;</code>，在经过字符串转义后，实际上就是<code>\&quot;</code>，替换完成后就是<code>\\&quot;</code>，再反转义回来就变成了<code>\\\\\&quot;</code>。从而实现了替换。</p>
+<p>有了这一步，当我们最初输入：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">\<span class="string">"content\":\"&lt;p&gt;testtest\\\"ggg\\\"&lt;/p&gt;\"</span></span><br></pre></td></tr></table></figure>
+
+<p>的时候，首先会被替换成：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">\<span class="string">"content\":\"&lt;p&gt;testtest\\\\\"ggg\\\\\"&lt;/p&gt;\"</span></span><br></pre></td></tr></table></figure>
+
+<p>然后在Aviator中被解析为：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">"content"</span>:<span class="string">"&lt;p&gt;testtest\"ggg\"&lt;/p&gt;"</span></span><br></pre></td></tr></table></figure>
+
+<p>这是一个Aviator可以处理的合格Json，处理完成后，经过反转义</p>
+<p>又会变成：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">\<span class="string">"content\":\"&lt;p&gt;testtest\\\"ggg\\\"&lt;/p&gt;\"</span></span><br></pre></td></tr></table></figure>
+
+<p>即最初的Json字符串</p>
+<p>大功告成！！！</p>
+
+      
+
+      
+    </div>
+    <div class="article-info article-info-index">
+      
+      
+      
+
+      
+        <p class="article-more-link">
+          <a class="article-more-a" href="/2020/11/20/%E8%AE%B0%E4%B8%80%E6%AC%A1AviatorScript%E7%9A%84%E5%9D%91/">展开全文 >></a>
+        </p>
+      
+
+      
+      <div class="clearfix"></div>
+    </div>
+  </div>
+</article>
+
+<aside class="wrap-side-operation">
+    <div class="mod-side-operation">
+        
+        <div class="jump-container" id="js-jump-container" style="display:none;">
+            <a href="javascript:void(0)" class="mod-side-operation__jump-to-top">
+                <i class="icon-font icon-back"></i>
+            </a>
+            <div id="js-jump-plan-container" class="jump-plan-container" style="top: -11px;">
+                <i class="icon-font icon-plane jump-plane"></i>
+            </div>
+        </div>
+        
+        
+    </div>
+</aside>
+
+
+
+
+  
+    <article id="post-基于Shiro的权限系统开发" class="article article-type-post  article-index" itemscope itemprop="blogPost">
+  <div class="article-inner">
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2020/10/18/%E5%9F%BA%E4%BA%8EShiro%E7%9A%84%E6%9D%83%E9%99%90%E7%B3%BB%E7%BB%9F%E5%BC%80%E5%8F%91/">基于Shiro的权限系统开发-01</a>
+    </h1>
+  
+
+        
+        <a href="/2020/10/18/%E5%9F%BA%E4%BA%8EShiro%E7%9A%84%E6%9D%83%E9%99%90%E7%B3%BB%E7%BB%9F%E5%BC%80%E5%8F%91/" class="archive-article-date">
+  	<time datetime="2020-10-18T08:07:29.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2020-10-18</time>
+</a>
+        
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="基于Vue-SpringBoot-Shiro的权限系统开发"><a href="#基于Vue-SpringBoot-Shiro的权限系统开发" class="headerlink" title="基于Vue + SpringBoot + Shiro的权限系统开发"></a>基于Vue + SpringBoot + Shiro的权限系统开发</h1><h2 id="系统需求"><a href="#系统需求" class="headerlink" title="系统需求"></a>系统需求</h2><p>本次权限系统开发大致分为以下几个部分：</p>
+<ul>
+<li>Ldap登录模块</li>
+<li>菜单权限模块</li>
+<li>数据实例权限模块</li>
+<li>权限管理模块</li>
+</ul>
+<p>权限主要分为菜单权限和数据实例权限，菜单权限即用户所能够访问到的系统服务，数据实例权限即用户在访问某一系统服务时，对其中数据实例的访问权限。</p>
+<h2 id="数据库设计"><a href="#数据库设计" class="headerlink" title="数据库设计"></a>数据库设计</h2><p>由于本系统主要面向内部人员使用，因此没有采用较为经典的用户-&gt;角色-&gt;权限的三表方式，而是使用了两张表：<code>sys_user</code>表与<code>rel_user_perm</code>表，表结构如下：</p>
+<p><img src="/images/shiro%E6%9D%83%E9%99%90%E7%B3%BB%E7%BB%9F%E5%BC%80%E5%8F%91/%E6%95%B0%E6%8D%AE%E8%A1%A8.png" alt=""></p>
+<p>其中<code>sys_user</code>表即用户表，为了简化系统开发，根据系统需求，将角色也放入用户表中。即一个用户对应一个角色。<br><code>rel_user_perm</code>表为实例权限表，由于是采用ldap域账户登录，因此使用域账户账号即username作为查找时的主键。该表用于设置用户对应的数据实例权限。</p>
+<h2 id="权限关系"><a href="#权限关系" class="headerlink" title="权限关系"></a>权限关系</h2><p>权限关系设计如下图：</p>
+<p><img src="/images/shiro%E6%9D%83%E9%99%90%E7%B3%BB%E7%BB%9F%E5%BC%80%E5%8F%91/%E7%94%A8%E6%88%B7%E8%A7%92%E8%89%B2%E5%85%B3%E7%B3%BB.png" alt=""></p>
+<p><img src="/images/shiro%E6%9D%83%E9%99%90%E7%B3%BB%E7%BB%9F%E5%BC%80%E5%8F%91/%E7%94%A8%E6%88%B7%E6%95%B0%E6%8D%AE%E5%85%B3%E7%B3%BB.png" alt=""></p>
+<p>用户与角色为一对一对应关系（不提供单用户多角色扩展），每个角色对应一组事先定义好的菜单权限（配置文件，可修改）<br>每个用户可以对应多个数据实例权限。</p>
+<h2 id="技术选型"><a href="#技术选型" class="headerlink" title="技术选型"></a>技术选型</h2><p>本次权限系统开发是基于一个已经成熟运作的系统进行开发，前端采用Vue.js作为前端框架，element ui 作为ui框架，后端基于springboot开发。将要开发的权限模块则选择shiro来进行权限管理。因为相较于Spring原生提供的Spring security，shiro框架开发更为轻便简单，且本次系统开发所需要的功能shiro基本都可以提供，因此不选择使用较为复杂的Spring security。</p>
+<h2 id="Ldap登录模块"><a href="#Ldap登录模块" class="headerlink" title="Ldap登录模块"></a>Ldap登录模块</h2><p>相比于传统的</p>
+
+      
+
+      
+    </div>
+    <div class="article-info article-info-index">
+      
+      
+	<div class="article-tag tagcloud">
+		<i class="icon-price-tags icon"></i>
+		<ul class="article-tag-list">
+			 
+        		<li class="article-tag-list-item">
+        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color1">Shiro</a>
+        		</li>
+      		 
+        		<li class="article-tag-list-item">
+        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color1">springboot</a>
+        		</li>
+      		
+		</ul>
+	</div>
+
+      
+
+      
+        <p class="article-more-link">
+          <a class="article-more-a" href="/2020/10/18/%E5%9F%BA%E4%BA%8EShiro%E7%9A%84%E6%9D%83%E9%99%90%E7%B3%BB%E7%BB%9F%E5%BC%80%E5%8F%91/">展开全文 >></a>
+        </p>
+      
+
+      
+      <div class="clearfix"></div>
+    </div>
+  </div>
+</article>
+
+<aside class="wrap-side-operation">
+    <div class="mod-side-operation">
+        
+        <div class="jump-container" id="js-jump-container" style="display:none;">
+            <a href="javascript:void(0)" class="mod-side-operation__jump-to-top">
+                <i class="icon-font icon-back"></i>
+            </a>
+            <div id="js-jump-plan-container" class="jump-plan-container" style="top: -11px;">
+                <i class="icon-font icon-plane jump-plane"></i>
+            </div>
+        </div>
+        
+        
+    </div>
+</aside>
+
+
+
+
+  
     <article id="post-HashMap源码理解之put方法" class="article article-type-post  article-index" itemscope itemprop="blogPost">
   <div class="article-inner">
     
@@ -1248,6 +1453,14 @@ MathJax.Hub.Queue(function() {
              
               <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color4">Map</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color1">Shiro</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color1">springboot</a>
               </li>
             
             <div class="clearfix"></div>
